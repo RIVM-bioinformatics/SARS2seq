@@ -1,0 +1,663 @@
+from os import system
+from collections import Counter
+import pysam
+import pysamstats
+import pandas as pd
+import argparse
+import gffpandas.gffpandas as gffpd
+import re
+from datetime import date
+import sys
+from Bio import SeqIO
+
+arg = argparse.ArgumentParser()
+
+arg.add_argument(
+    "--input",
+    "-i",
+    metavar="File",
+    help="BAM file, sorted and indexed.",
+    type=str,
+    required=True,
+)
+
+arg.add_argument(
+    "--reference",
+    "-ref",
+    metavar="File",
+    help="Reference fasta file",
+    type=str,
+    required=True,
+)
+
+arg.add_argument(
+    "--mincov",
+    "-mc",
+    metavar="Number",
+    help="Minimum coverage threshold",
+    default=1,
+    type=int,
+    required=True,
+)
+
+arg.add_argument(
+    "--name",
+    help="Name that will be used to make the fasta files",
+    type=str,
+    required=True,
+)
+
+arg.add_argument(
+    "--consensus",
+    metavar="File",
+    help="File with the non-corrected consensus sequence",
+    type=argparse.FileType("w"),
+    required=True,
+)
+
+arg.add_argument(
+    "--gapcorrected",
+    metavar="File",
+    help="File with the corrected consensus sequence",
+    type=argparse.FileType("w"),
+    required=True,
+)
+
+arg.add_argument(
+    "--gff",
+    metavar="File",
+    help="GFF3 file produced by Prodigal",
+    type=str,
+    required=True,
+)
+
+arg.add_argument(
+    "--threads",
+    metavar="Number",
+    help="Number of threads that can be used for decompressing/compressing the BAM file",
+    default=1,
+    type=int,
+    required=False,
+)
+
+arg.add_argument(
+    "--coverage",
+    "-cov",
+    metavar="File",
+    help="Output file listing the coverage per position",
+    type=argparse.FileType("w"),
+    required=True,
+)
+
+arg.add_argument(
+    "--insertions",
+    "-ins",
+    metavar="File",
+    help="Output file displaying if there's a significant insertion at a position",
+    type=argparse.FileType("w"),
+    required=True,
+)
+
+arg.add_argument(
+    "--vcf",
+    metavar="File",
+    help="Output VCF file",
+    type=argparse.FileType("w"),
+    required=True
+)
+
+flags = arg.parse_args()
+
+
+def MakeGFFindex(gff3file):
+    GFFindex = gffpd.read_gff3(gff3file)
+
+    return GFFindex.df
+
+
+def BuildIndex(bam, fasta):
+    columns = ["coverage", "A", "T", "C", "G", "D", "I"]
+    pileup_index = pd.DataFrame(columns=columns)
+
+    for rec in pysamstats.stat_pileup(
+        type="variation",
+        alignmentfile=bam,
+        stepper="nofilter",
+        fafile=fasta,
+        pad=True,
+        one_based=True,
+        max_depth=1000000000,
+    ):
+        pileup_index.loc[rec["pos"]] = (
+            [rec["reads_all"]]
+            + [rec["A"]]
+            + [rec["T"]]
+            + [rec["C"]]
+            + [rec["G"]]
+            + [rec["deletions"]]
+            + [rec["insertions"]]
+        )
+
+    return pileup_index
+
+
+def ListIns(pileupindex):
+    insertpositions = []
+    insertpercentage = []
+    for index, rows in pileupindex.iterrows():
+        values = []
+        for items in pileupindex.loc[index]:
+            values.append(items)
+        position = index
+        coverage = values[0]
+        inserts = values[6]
+        if coverage < flags.mincov:
+            continue
+        if coverage == 0 and inserts == 0:
+            continue
+        number = (inserts / coverage) * 100
+        if number > 55:
+            insertpositions.append(position)
+            insertpercentage.append(number)
+    if not insertpositions:
+        return False, insertpositions, insertpercentage
+    if insertpositions:
+        return True, insertpositions, insertpercentage
+
+
+def Inside_an_ORF(location, GFFindex):
+    exists_in_orf = []
+    for index, orf in GFFindex.iterrows():
+        in_orf = location in range(orf.start, orf.end)
+        exists_in_orf.append(in_orf)
+
+    if any(exists_in_orf) == True:
+        in_orf = True
+    elif any(exists_in_orf) == False:
+        in_orf = False
+    else:
+        in_orf = False
+        system.exit(
+            """
+                    Something went wrong during the processing of this GFF.
+                    Please check or re-generate the GFF file and try again.
+                    """
+        )
+
+    return in_orf
+
+
+def BeyondStopCodon(location, gffindex, currentseq):
+
+    seqstring = "".join(currentseq)
+
+    stopcodons = ["TAG", "TAA", "TGA"]
+    stopcounter = []
+
+    def GFF_start_end(location, GFFindex):
+        for index, orf in GFFindex.iterrows():
+            in_orf = location in range(orf.start, orf.end)
+            if in_orf == False:
+                continue
+            if in_orf == True:
+                return orf.start
+
+    def ORFsequence(startloc, seqstring):
+        orfseq = seqstring[startloc-1:].upper()
+        orfseq = orfseq[orfseq.find("ATG") :]
+        return orfseq
+
+    def split_to_codons(seq, num):
+        return [seq[start : start + num] for start in range(0, len(seq), 3)]
+
+    codons = split_to_codons(
+        ORFsequence(GFF_start_end(location, gffindex), seqstring), 3
+    )
+    for i in stopcodons:
+        stopcounter.append(codons.count(i))
+
+    if any(stopcounter) > 0:
+        return True
+    else:
+        return False
+
+
+def slices(mintwo, minone, zero, plusone, plustwo):
+    dist_mintwo = {
+        "A": mintwo[1],
+        "T": mintwo[2],
+        "C": mintwo[3],
+        "G": mintwo[4],
+        "D": mintwo[5],
+    }
+    dist_minone = {
+        "A": minone[1],
+        "T": minone[2],
+        "C": minone[3],
+        "G": minone[4],
+        "D": minone[5],
+    }
+    dist_zero = {
+        "A": zero[1],
+        "T": zero[2],
+        "C": zero[3],
+        "G": zero[4],
+        "D": zero[5],
+    }
+    dist_plusone = {
+        "A": plusone[1],
+        "T": plusone[2],
+        "C": plusone[3],
+        "G": plusone[4],
+        "D": plusone[5],
+    }
+    dist_plustwo = {
+        "A": plustwo[1],
+        "T": plustwo[2],
+        "C": plustwo[3],
+        "G": plustwo[4],
+        "D": plustwo[5],
+    }
+
+    return dist_mintwo, dist_minone, dist_zero, dist_plusone, dist_plustwo
+
+
+def MakeSlices(pileupindex, secondback, firstback, currentloc, firstnext, secondnext, lastposition):
+    # currentloc = slice_c
+    # firstnext = slice_n1
+    # secondnext = slice_n2
+    # firstback = slice_p1
+    # secondback = slice_np2
+    
+    slice_c = []
+    slice_n1 = []
+    slice_n2 = []
+    slice_p1 = []
+    slice_p2 = []
+
+    for items in pileupindex.loc[currentloc]:
+        slice_c.append(items)
+
+    if firstnext < lastposition:
+        for items in pileupindex.loc[firstnext]:
+            slice_n1.append(items)
+    else:
+        for items in pileupindex.loc[lastposition]:
+            slice_n1.append(items)
+
+    if secondnext < lastposition:
+        for items in pileupindex.loc[secondnext]:
+            slice_n2.append(items)
+    else:
+        for items in pileupindex.loc[lastposition]:
+            slice_n2.append(items)
+
+    for items in pileupindex.loc[firstback]:
+        slice_p1.append(items)
+    for items in pileupindex.loc[secondback]:
+        slice_p2.append(items)
+    
+    return slice_c, slice_n1, slice_n2, slice_p1, slice_p2
+
+
+def ExtractInserts(bam, position):
+    refname = bam.references[0]
+    startpos = position - 1
+    endpos = position
+    for pileupcolumn in bam.pileup(refname, startpos, endpos, truncate=True):
+        items = pileupcolumn.get_query_sequences(add_indels=True)
+        founditems = []
+        for i in items:
+            founditems.append(i.upper())
+        sorteddistribution = dict(Counter(founditems).most_common())
+        pileupresult = next(iter(sorteddistribution))
+        match = re.search("(\d)([a-zA-Z]+)", pileupresult)
+
+        if match:
+            nucleotides = match.group(2)
+            return nucleotides
+        else:
+            return None
+
+
+def BuildCoverage(pileupindex):
+    with flags.coverage as coverage_output:
+        for index, rows in pileupindex.iterrows():
+            slice_c = []
+            for items in pileupindex.loc[index]:
+                slice_c.append(items)
+            coverage = slice_c[0]
+            coverage_output.write(str(index) + "\t" + str(coverage) + "\n")
+
+
+def BuildCons(pileupindex, IndexedGFF, mincov, bam):
+    standard_cons = []
+    corrected_cons = []
+    corr_cons_noinsert = []
+
+    hasinsertions, insertlocations, insertpercentages = ListIns(pileupindex)
+    for index, rows in pileupindex.iterrows():
+
+        currentloc = index
+        secondback = currentloc - 2
+        firstback = currentloc - 1
+        firstnext = currentloc + 1
+        secondnext = currentloc + 2
+
+        lastposition = pileupindex.tail(1).index.item()
+
+        if currentloc == 1:
+            firstback = 1
+            secondback = 1
+        if currentloc == 2:
+            secondback = 1
+
+        Within_ORF = Inside_an_ORF(currentloc, IndexedGFF)
+
+        slice_c, slice_n1, slice_n2, slice_p1, slice_p2 = MakeSlices(pileupindex, secondback, firstback, currentloc, firstnext, secondnext, lastposition)
+        
+        ## get the actual nucleotide distributions for every position
+
+        prv2_nuc_dist, prv_nuc_dist, cur_nuc_dist, nxt_nuc_dist, nxt2_nuc_dist = slices(
+            slice_p2, slice_p1, slice_c, slice_n1, slice_n2
+        )
+
+        # get the most primary nucleotide and secondary nucleotide for every position
+        ## >> sort the distribution of the earlier made dict based on the values, return the keys with the highest and secondary highest values
+        # > current pos
+        cur_sorted_dist = sorted(((value, key) for key, value in cur_nuc_dist.items()))
+        # Most abundant nuc at current pos: set it to lower case when that nuc is < mincov, else, uppercase.
+        # (locations are filtered based on cur_cov (i.e. sum count of all nucs, incl dels), however, when the most
+        # abundant nuc is < mincov (but sum total count of all nucs still >= mincov) it makes it a lowercase letter to
+        # signify uncertainty.
+        if cur_sorted_dist[-1][0] < mincov:
+            cur_primary_nuc = cur_sorted_dist[-1][1].lower()
+        else:
+            cur_primary_nuc = cur_sorted_dist[-1][1].upper()
+
+        # 2nd most abundant nuc at current pos, used later for gap-filling when del is inframe:
+        # set it to N if count of that nuc == 0, this to assure that random nucs aren't inserted when count is zero.
+        # Set to lower case when that nuc is < mincov, see explanation above, else set uppercase.
+        if cur_sorted_dist[-2][0] == 0:
+            cur_second_nuc = "N"
+        elif cur_sorted_dist[-2][0] < mincov:
+            cur_second_nuc = cur_sorted_dist[-2][1].lower()
+        else:
+            cur_second_nuc = cur_sorted_dist[-2][1].upper()
+
+        # 3rd most abundant nuc at current pos, used later for gap-filling when del is inframe:
+        # set it to N if count of that nuc == 0, this to assure that random nucs aren't inserted when count is zero.
+        # Set to lower case when that nuc is < mincov, see explanation above, else set uppercase.
+        if cur_sorted_dist[-3][0] == 0:
+            cur_third_nuc = "N"
+        elif cur_sorted_dist[-3][0] < mincov:
+            cur_third_nuc = cur_sorted_dist[-3][1].lower()
+        else:
+            cur_third_nuc = cur_sorted_dist[-3][1].upper()
+
+        # > next pos
+        nxt_sorted_dist = sorted(((value, key) for key, value in nxt_nuc_dist.items()))
+        nxt_primary_nuc = nxt_sorted_dist[-1][1]
+
+        # > nextnext pos
+        nxt2_sorted_dist = sorted(
+            ((value, key) for key, value in nxt2_nuc_dist.items())
+        )
+        nxt2_primary_nuc = nxt2_sorted_dist[-1][1]
+
+        # > prev pos
+        prv_sorted_dist = sorted(((value, key) for key, value in prv_nuc_dist.items()))
+        prv_primary_nuc = prv_sorted_dist[-1][1]
+
+        # > prevprev pos
+        prv2_sorted_dist = sorted(
+            ((value, key) for key, value in prv2_nuc_dist.items())
+        )
+        prv2_primary_nuc = prv2_sorted_dist[-1][1]
+
+        # Get the current coverage
+        cur_cov = slice_c[0]
+
+        # if 2nd most abundant nuc is not "N" (see above, i.e. its non-zero) and most and 2nd most abundant nucs are tied in counts, and DoC at cur-pos is >= mincov, then its an ambigious call and warning is thrown to stdout.
+        # TODO exclude the "D"-nuc from the comparison, not informative and almost always artefacts IMHO, but we can discuss it later. Currently, warnings are thrown that an equal "D" count is ambigious
+        if (
+            (cur_second_nuc != "N")
+            and (cur_sorted_dist[-1][0] == cur_sorted_dist[-2][0])
+            and (cur_cov >= mincov)
+        ):
+            # TODO hier later nog een optie van maken om abiguity nuc-code te outputten op user request
+            print(
+                "File: ",
+                flags.input,
+                ". Ambigious call during consensus-calling at position ",
+                currentloc,
+                ', a "',
+                cur_primary_nuc,
+                '" was called (N=',
+                cur_sorted_dist[-1][0],
+                ') but could also be a "',
+                cur_second_nuc,
+                '" with (N=',
+                cur_sorted_dist[-2][0],
+                ").",
+                sep="",
+            )
+
+        # als de coverage op de "currentposition" lager is dan de minimale coverage, plak dan een "N"
+        # Zoniet, ga door met de daadwerkelijke nucleotides checken
+        if cur_cov < mincov:
+            standard_cons.append("N")
+            corrected_cons.append("N")
+            corr_cons_noinsert.append("N")
+        else:
+            # als de "currentposition" géén deletie is, plak dan de meerderheid (A/T/C/G/D) in de index van deze positie (komt uit alignment)
+            if cur_primary_nuc.upper() != "D":
+                standard_cons.append(cur_primary_nuc)
+                corrected_cons.append(cur_primary_nuc)
+                corr_cons_noinsert.append(cur_primary_nuc)
+            # als de "currentposition" wél een deletie is, ga dan kijken naar de status van omliggende nucleotides
+            elif cur_primary_nuc.upper() == "D":
+                standard_cons.append(
+                    "-"
+                )  ## <-- deze is hier om beide een "standaard consensus" te maken naast de "gap-corrected consensus"
+                if Within_ORF == False:
+                    corrected_cons.append("-")
+                    corr_cons_noinsert.append("-")
+                elif Within_ORF == True:
+
+                    if BeyondStopCodon(currentloc, IndexedGFF, corrected_cons) is True:
+                        corrected_cons.append("-")
+                        corr_cons_noinsert.append("-")
+
+                    if BeyondStopCodon(currentloc, IndexedGFF, corrected_cons) is False:
+
+                        is_del = False
+
+                        # In het geval er een deletie is gerapporteerd als meerderheid op de "currentposition"
+                        # en zowel nucleotide positie "-1" en "+1" (t.o.v. de "currentposition", dit is positie 0) beide géén deletie hebben
+                        # vul dan de positie met de tweede meest voorkomende gerapporteerde nucleotide (A/C/T/G/D)
+                        if (
+                            nxt_primary_nuc.upper() != "D"
+                            and prv_primary_nuc.upper() != "D"
+                        ):
+                            is_del = False
+
+                        # In het geval er een deletie is gerapporteerd als meerderheid op de "currentposition"
+                        # en zowel nucleotide positie "-1" en "+1" hebben beide wél een deletie gerapporteerd
+                        # keur dan de gerapporteerde deletie goed
+                        if (
+                            nxt_primary_nuc.upper() == "D"
+                            and prv_primary_nuc.upper() == "D"
+                        ):
+                            is_del = True
+
+                        # In het geval er een deletie is gerapporteerd als meerderheid op de "currentposition"
+                        # en zowel nucleotide positie "+1" en "+2" hebben beide wél een deletie gerapporteerd
+                        # keur dan de gerapporteerde deletie goed
+                        if (
+                            nxt_primary_nuc.upper() == "D"
+                            and nxt2_primary_nuc.upper() == "D"
+                        ):
+                            is_del = True
+
+                        # In het geval er een deletie is gerapporteerd als meerderheid op de "currentposition"
+                        # en zowel nucleotide positie "-1" en "-2" hebben beide wél een deletie gerapporteerd
+                        # keur dan de gerapporteerde deletie goed
+                        if (
+                            prv_primary_nuc.upper() == "D"
+                            and prv2_primary_nuc.upper() == "D"
+                        ):
+                            is_del = True
+
+                        if is_del == False:
+                            # if cur_second_nuc and cur_third_nuc are not "N" (see above, i.e. its non-zero) and 2nd and 3rd most abundant nucs are tied in counts,
+                            # its an ambigious call and throw a warning to std. out.
+                            if (cur_second_nuc and cur_third_nuc != "N") and (
+                                cur_sorted_dist[-2][0] == cur_sorted_dist[-3][0]
+                            ):
+                                print(
+                                    "File: ",
+                                    flags.input,
+                                    ". Ambigious call during gap-filling at position ",
+                                    currentloc,
+                                    ', a "',
+                                    cur_second_nuc,
+                                    '" was called (N=',
+                                    cur_sorted_dist[-2][0],
+                                    ') but could also be a "',
+                                    cur_third_nuc,
+                                    '" with (N=',
+                                    cur_sorted_dist[-3][0],
+                                    ").",
+                                    sep="",
+                                )
+                            corrected_cons.append(cur_second_nuc)
+                            corr_cons_noinsert.append(cur_second_nuc)
+                        elif is_del == True:
+                            corrected_cons.append("-")
+                            corr_cons_noinsert.append("-")
+            if cur_cov > mincov:
+                if hasinsertions is True:
+                    for listedposition in insertlocations:
+                        if currentloc == listedposition:
+                            try:
+                                nuc_to_insert = ExtractInserts(bam, currentloc)
+                                if nuc_to_insert is not None:
+                                    standard_cons.append(nuc_to_insert)
+                                    corrected_cons.append(nuc_to_insert)
+                                else:
+                                    continue
+                            except:
+                                print(
+                                    f"Unable to add an insertion at {listedposition}. Skipping..."
+                                )
+                                continue
+
+    sequences = "".join(standard_cons) + "," + "".join(corrected_cons) + "," + "".join(corr_cons_noinsert)
+    return sequences
+
+
+def GetVCF(ref, seq_noinsert, pileindex, bam):
+    hasinserts, inspositions, insprominence = ListIns(pileindex)
+    currentdate = date.today().strftime("%Y%m%d")
+    
+    limiter = 0
+    for record in SeqIO.parse(ref, "fasta"):
+        if limiter != 0:
+            continue
+        limiter += 1
+        RefID = record.id
+        reflist = list(record.seq)
+
+    seqlist = list(seq_noinsert)
+
+
+    with flags.vcf as out:
+        ##writeheader
+        out.write(f"""##fileformat=VCFv4.2
+##fileDate={currentdate}
+##source={' '.join(sys.argv)}
+##reference={ref}
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
+##INFO=<ID=INDEL,Number=0,Type=Flag,Description="Indicates that the variant is an INDEL.">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+""")
+        #writecontents
+        delskips = []
+        for i in range(len(reflist)):
+            if i in delskips:
+                continue
+            
+            if reflist[i] != seqlist[i]:
+                
+                b = i
+                
+                if seqlist[i] == "-":
+                    
+                    extendedreflist = []
+                    while seqlist[b] == "-":
+                        extendedreflist.append(reflist[b])
+                        delskips.append(b)
+                        b+=1
+                        
+                    extRefList = "".join(extendedreflist)
+                    joinedref = str(reflist[i-1] + extRefList)
+                    
+                    out.write(f"{RefID}\t{i}\t.\t{joinedref}\t{seqlist[i-1]}\t.\tPASS\tDP={flags.mincov};INDEL\n")
+                else:
+                    out.write(f"{RefID}\t{i+1}\t.\t{reflist[i]}\t{seqlist[i]}\t.\tPASS\tDP={flags.mincov}\n")
+            if hasinserts is True:
+                for listedposition in inspositions:
+                    if i == listedposition:
+                        try:
+                            to_insert = ExtractInserts(bam, i)
+                            if to_insert is not None:
+                                combinedentry = seqlist[i] + to_insert
+                                out.write(f"{RefID}\t{i}\t.\t{reflist[i]}\t{combinedentry}\t.\tPASS\tDP={flags.mincov};INDEL\n")
+                        except:
+                            print(f"Unable to add an insertion at {listedposition}. Skipping...")
+
+if __name__ == "__main__":
+    bam = pysam.AlignmentFile(flags.input, "rb", threads=flags.threads)
+    GFF_index = MakeGFFindex(flags.gff)
+    pileindex = BuildIndex(bam, flags.reference)
+    BuildCoverage(pileindex)
+    sequences = BuildCons(pileindex, GFF_index, flags.mincov, bam)
+
+    standard_seq = sequences.split(",")[0]
+    corrected_seq = sequences.split(",")[1]
+    corr_seq_noinsert = sequences.split(",")[2]
+    with flags.consensus as raw_consensus_seq:
+        raw_consensus_seq.write(
+            ">"
+            + flags.name
+            + "_standard_consensus_cov_"
+            + str(flags.mincov)
+            + "\n"
+            + standard_seq
+            + "\n"
+        )
+        raw_consensus_seq.close()
+    with flags.gapcorrected as corrected_consensus_seq:
+        corrected_consensus_seq.write(
+            ">"
+            + flags.name
+            + "_gap-corrected_consensus_cov_"
+            + str(flags.mincov)
+            + "\n"
+            + corrected_seq
+            + "\n"
+        )
+        corrected_consensus_seq.close()
+    hasinserts, inspositions, insprominence = ListIns(pileindex)
+    ins = ", ".join("%02d" % x for x in inspositions)
+    prc = ", ".join("%02d" % x for x in insprominence)
+    if hasinserts is True:
+        with flags.insertions as insertfile:
+            insertfile.write(flags.name + "\t" + "Yes" + "\t" + ins + "\t" + prc + "\n")
+            insertfile.close()
+    if hasinserts is False:
+        with flags.insertions as insertfile:
+            insertfile.write(flags.name + "\t" + "No" + "\t" + ins + "\t" + prc + "\n")
+            insertfile.close()
+    GetVCF(flags.reference, corr_seq_noinsert, pileindex, bam)
