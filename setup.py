@@ -27,8 +27,7 @@ setup(
     install_requires=[
         'gnureadline>=8.0.0',
         'biopython>=1.78',
-        'snakemake>=6.0.5',
-        'mamba>=0.11.2'
+        'snakemake>=6.0.5'
     ],
     entry_points={"console_scripts": [
         'sars2seq = SARS2seq.SARS2seq:main',

@@ -239,12 +239,9 @@ rule RemovePrimers:
     shell:
         """
         if [ {params.platform} == "illumina" ]; then
-            python {params.illuminascript} --input {input.fq} --reference {input.ref} \
-            --primers {input.pr} --threads {threads} --output {output}
-
+            ampligone -i {input.fq} -ref {input.ref} -pr {input.pr} -o {output} -at end-to-mid -t {threads}
         elif [ {params.platform} == "nanopore" ]; then
-            python {params.nanoporescript} --input {input.fq} --reference {input.ref} \
-            --primers {input.pr} --threads {threads} --output {output}
+            ampligone -i {input.fq} -ref {input.ref} -pr {input.pr} -o {output} -at end-to-end -t {threads}
         fi
         """
 

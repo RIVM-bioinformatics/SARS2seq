@@ -9,8 +9,9 @@ dependencies:
   - python=3.7
   - pysam==0.16.0.1
   - pysamstats==1.1.2
-  - modin==0.8.3
-  - pandas
+  - parmap==1.5.2
+  - tqdm>=4.59.0
+  - pandas>=1.2.3
   - minimap2==2.17
   - mappy==2.17
   - samtools==1.11
@@ -20,4 +21,7 @@ dependencies:
   - fastqc==0.11.8
   - fastp==0.20.1
   - multiqc==1.9
+  - pip
+  - pip:
+    - git+https://github.com/RIVM-bioinformatics/AmpliGone.git
 
