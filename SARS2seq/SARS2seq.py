@@ -218,7 +218,8 @@ def main():
     if conf['COMPUTING']['compmode'] == 'grid':
         snakemake.snakemake(Snakefile,
                             workdir=workdir,
-                            cores=parsedconfig['cores'], 
+                            cores=parsedconfig['cores'],
+                            nodes=parsedconfig['cores'],
                             use_conda=parsedconfig['use-conda'],
                             conda_frontend="mamba",
                             jobname=parsedconfig['jobname'],
