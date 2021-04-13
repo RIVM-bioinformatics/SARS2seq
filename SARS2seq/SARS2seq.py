@@ -75,15 +75,6 @@ def get_args(givenargs):
     )
 
     arg.add_argument(
-        "--reference",
-        "-ref",
-        type=lambda s: fasta_input((".fasta", ".fa"), s),
-        metavar="File",
-        help="Input Reference genome in FASTA format",
-        required=True,
-    )
-
-    arg.add_argument(
         "--primers",
         "-pr",
         type=lambda s: fasta_input((".fasta", ".fa"), s),
@@ -169,7 +160,7 @@ def main():
     flags = get_args(sys.argv[1:])
     
     inpath = os.path.abspath(flags.input)
-    refpath = os.path.abspath(flags.reference)
+    #refpath = os.path.abspath(flags.reference)
     primpath = os.path.abspath(flags.primers)
     outpath = os.path.abspath(flags.output)
     
@@ -187,10 +178,10 @@ def main():
     ##> Check the default userprofile, make it if it doesn't exist
     conf = ReadConfig(os.path.expanduser('~/.SARS2seq_defaultprofile.ini'))
     
-    ##@ validate the reference and primer files
-    if IsValidFasta(refpath) is False:
-        print(f'{color.RED + color.BOLD}The given reference fasta contains illegal characters in its sequence.{color.END}\nPlease check the reference fasta and try again. Exiting...')
-        sys.exit(1)
+    ###@ validate the reference and primer files
+    #if IsValidFasta(refpath) is False:
+    #    print(f'{color.RED + color.BOLD}The given reference fasta contains illegal characters in its sequence.{color.END}\nPlease check the reference fasta and try again. Exiting...')
+    #    sys.exit(1)
     
     if IsValidFasta(primpath) is False:
         print(f'{color.RED + color.BOLD}The given fasta with primer sequences contains illegal characters in its sequences.{color.END}\nPlease check the primer fasta and try again. Exiting...')
@@ -208,7 +199,7 @@ def main():
     workdir = outpath
         
     samplesheet = WriteSampleSheet(inpath, flags.platform)
-    snakeparams, snakeconfig = WriteConfigs(conf, flags.threads, os.getcwd(), flags.platform, refpath, primpath, samplesheet, flags.amplicon_type, flags.dryrun)
+    snakeparams, snakeconfig = WriteConfigs(conf, flags.threads, os.getcwd(), flags.platform, primpath, samplesheet, flags.amplicon_type, flags.dryrun)
     
     openedconfig = open(snakeconfig)
     parsedconfig = yaml.load(openedconfig, Loader=yaml.FullLoader)

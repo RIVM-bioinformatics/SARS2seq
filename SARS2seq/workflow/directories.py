@@ -23,6 +23,7 @@ prim = "primers/"
 aln = "alignment/"
 bf = "bam-files/"
 vf = "vcf-files/"
+features = "features/"
 
 seqs = "sequences/"
 com = "combined/"

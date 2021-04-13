@@ -30,7 +30,7 @@ def SnakemakeConfig(conf, cores, dryrun):
         
     return config
 
-def SnakemakeParams(conf, cores, ref, prim, platform, samplesheet, amplicon):
+def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
     if conf['COMPUTING']['compmode'] == 'local':
         threads_highcpu = int(cores - 2)
         threads_midcpu = int(cores / 2)
@@ -42,7 +42,7 @@ def SnakemakeParams(conf, cores, ref, prim, platform, samplesheet, amplicon):
     
     params = {
         "sample_sheet": samplesheet,
-        "reference_file": ref,
+        "reference_file": "Built-in: MN908947.3",
         "primer_file": prim,
         "platform": platform,
         "amplicon_type": amplicon,
@@ -68,7 +68,7 @@ def SnakemakeParams(conf, cores, ref, prim, platform, samplesheet, amplicon):
 
     return params
 
-def WriteConfigs(conf, cores, cwd, platform, ref, prims, samplesheet, amplicon_type, dryrun):
+def WriteConfigs(conf, cores, cwd, platform, prims, samplesheet, amplicon_type, dryrun):
     if not os.path.exists(cwd + "/config"):
         os.makedirs(cwd + "/config")
         
@@ -79,7 +79,7 @@ def WriteConfigs(conf, cores, cwd, platform, ref, prims, samplesheet, amplicon_t
     ConfigOut.close()
     
     with open("params.yaml", "w") as ParamsOut:
-        yaml.dump(SnakemakeParams(conf, cores, ref, prims, platform, samplesheet, amplicon_type), ParamsOut, default_flow_style=False)
+        yaml.dump(SnakemakeParams(conf, cores, prims, platform, samplesheet, amplicon_type), ParamsOut, default_flow_style=False)
     ParamsOut.close()
     
     parameters = os.getcwd() + '/params.yaml'

@@ -16,13 +16,14 @@ with open(config["sample_sheet"]) as sample_sheet_file:
     SAMPLES = yaml.load(sample_sheet_file)
 
 primerfile = config["primer_file"]
-reffile = config["reference_file"]
+reffile = srcdir("files/MN908947.fasta")
 ref_basename = os.path.splitext(os.path.basename(reffile))[0]
 
 rule all:
     input:
         f"{res}multiqc.html",
-        f"{res + seqs}" + "concat_gap_corrected_cov_ge_1.fasta"
+        f"{res + seqs}" + "concat_cov_ge_50.fasta",
+        f"{res}Width_of_coverage.tsv"
     
 rule Prepare_ref_and_primers:
     input:
@@ -217,8 +218,6 @@ if config["platform"] == "nanopore":
             -o {output.fq} -h {output.html} -j {output.json} > {log} 2>&1
             """
 
-
-#### PLACEHOLDER until AmpliGone package is published on a repo-manager
 rule RemovePrimers:
     input: 
         fq = rules.QC_filter.output.fq,
@@ -233,16 +232,13 @@ rule RemovePrimers:
         f"{logdir + bench}" + "RemovePrimers_{sample}.txt"
     threads: config['threads']['PrimerRemoval']
     params:
-        platform = config["platform"],
-        illuminascript = srcdir('scripts/IlluminaPrimers.py'),
-        nanoporescript = srcdir('scripts/NanoporePrimers.py')
+        amplicontype = config["amplicon_type"]
     shell:
         """
-        if [ {params.platform} == "illumina" ]; then
-            ampligone -i {input.fq} -ref {input.ref} -pr {input.pr} -o {output} -at end-to-mid -t {threads}
-        elif [ {params.platform} == "nanopore" ]; then
-            ampligone -i {input.fq} -ref {input.ref} -pr {input.pr} -o {output} -at end-to-end -t {threads}
-        fi
+        AmpliGone -i {input.fq} \
+        -ref {input.ref} -pr {input.pr} \
+        -o {output} -at {params.amplicontype} \
+        -t {threads}
         """
 
 rule QC_clean:
@@ -323,48 +319,28 @@ if config["platform"] == "nanopore":
             samtools index {output.bam} >> {log} 2>&1
             """
 
-rule Find_ORFs:
-    input: rules.Prepare_ref_and_primers.output.ref
-    output: 
-        aa = f"{datadir + refdir + ref_basename}_ORF_AA.fa",
-        nt = f"{datadir + refdir + ref_basename}_ORF_NT.fa",
-        gff= f"{datadir + refdir + ref_basename}_ORF_annotation.gff"
-    conda: 
-        f"{conda_envs}Consensus.yaml"
-    log:
-        f"{logdir}" + "ORF_analysis.log"
-    benchmark:
-        f"{logdir + bench}" + "ORF_analysis.txt"
-    threads: config["threads"]["Index"]
-    params:
-        method = config["runparams"]["ORF_method"],
-        form = config["runparams"]["ORF_output"]
-    shell:
-        """
-        prodigal -q -i {input} \
-        -a {output.aa} \
-        -d {output.nt} \
-        -o {output.gff} \
-        -p {params.method} \
-        -f {params.form} > {log} 2>&1
-        """
-
-
-### Placeholder for TrueConsense (or other name)
 rule Consensus:
     input: 
         bam = rules.Alignment.output.bam,
-        gff = rules.Find_ORFs.output.gff,
+        gff = srcdir("files/MN908947.gff"),
         ref = rules.Prepare_ref_and_primers.output.ref
     output: 
-        cons = f"{datadir + cons + seqs}" + "{sample}_standard_cov_ge_1.fa",
-        gapcor = f"{datadir + cons + seqs}" + "{sample}_gap_corrected_cov_ge_1.fa",
-        cov = f"{datadir + cons + covs}" + "{sample}_coverage_1.tsv",
-        ins = f"{datadir + cons + insr}" + "{sample}_inserts_1.tsv",
-        vcf = f"{datadir + aln + vf}" + "{sample}_cov_1.vcf"
+        cons_1 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_1.fa",
+        cons_5 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_5.fa",
+        cons_10 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_10.fa",
+        cons_50 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_50.fa",
+        cons_100 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_100.fa",
+        cov = f"{datadir + cons + covs}" + "{sample}_coverage.tsv",
+        gff = f"{datadir + cons + features}" + "{sample}.gff",
+        vcf_1 = f"{datadir + aln + vf}" + "{sample}_cov_ge_1.vcf",
+        vcf_5 = f"{datadir + aln + vf}" + "{sample}_cov_ge_5.vcf",
+        vcf_10 = f"{datadir + aln + vf}" + "{sample}_cov_ge_10.vcf",
+        vcf_50 = f"{datadir + aln + vf}" + "{sample}_cov_ge_50.vcf",
+        vcf_100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf"
     params:
-        mincov = 1,
-        script = srcdir('scripts/Consensus.py')
+        mincov = "1 5 10 50 100",
+        outdir = f"{datadir + cons + seqs}",
+        vcfdir = f"{datadir + aln + vf}"
     conda: 
         f"{conda_envs}Consensus.yaml"
     log:
@@ -374,28 +350,43 @@ rule Consensus:
     threads: config['threads']['Consensus']
     shell:
         """
-        python {params.script} --input {input.bam} \
-        --reference {input.ref} --gff {input.gff} \
-        --mincov {params.mincov} --name {wildcards.sample} \
-        --consensus {output.cons} --gapcorrected {output.gapcor} \
-        --coverage {output.cov} --insertions {output.ins} \
-        --vcf {output.vcf} --threads {threads}
+        TrueConsense --input {input.bam} \
+        --reference {input.ref} --features {input.gff} \
+        --coverage-levels {params.mincov} \
+        --samplename {wildcards.sample} \
+        --output {params.outdir} \
+        --variants {params.vcfdir} \
+        --output-gff {output.gff} \
+        --depth-of-coverage {output.cov} \
+        --noambiguity --threads {threads}
         """
 
-#Placeholder for when the real consensus caller is in-place
 rule concat_seqs:
     input:
-        gapcor_1 = expand( "{p}{sample}_gap_corrected_cov_ge_1.fa",
+        cons = expand( "{p}{sample}_cov_ge_{t}.fa",
                 p = f"{datadir + cons + seqs}",
+                t = [1, 5, 10, 50, 100],
                 sample = SAMPLES
                 )
     output:
-        gapcor_1 = f"{res + seqs}" + "concat_gap_corrected_cov_ge_1.fasta"
+        cons_1 = f"{res + seqs}" + "concat_cov_ge_1.fasta",
+        cons_5 = f"{res + seqs}" + "concat_cov_ge_5.fasta",
+        cons_10 = f"{res + seqs}" + "concat_cov_ge_10.fasta",
+        cons_50 = f"{res + seqs}" + "concat_cov_ge_50.fasta",
+        cons_100 = f"{res + seqs}" + "concat_cov_ge_100.fasta",
     params:
-        wcar_1 = f"{datadir + cons + seqs}" + "*_gap_corrected_cov_ge_1.fa"
+        wcar_1 = f"{datadir + cons + seqs}" + "*_cov_ge_1.fa",
+        wcar_5 = f"{datadir + cons + seqs}" + "*_cov_ge_5.fa",
+        wcar_10 = f"{datadir + cons + seqs}" + "*_cov_ge_10.fa",
+        wcar_50 = f"{datadir + cons + seqs}" + "*_cov_ge_50.fa",
+        wcar_100 = f"{datadir + cons + seqs}" + "*_cov_ge_100.fa",
     shell:
         """
-        cat {params.wcar_1} >> {output.gapcor_1}
+        cat {params.wcar_1} >> {output.cons_1}
+        cat {params.wcar_5} >> {output.cons_5}
+        cat {params.wcar_10} >> {output.cons_10}
+        cat {params.wcar_50} >> {output.cons_50}
+        cat {params.wcar_100} >> {output.cons_100}
         """
 
 
@@ -403,11 +394,34 @@ rule concat_seqs:
 #> add some rules here for concatenating the vcf files to a single tsv
 ###
 
+rule Get_Breadth_of_coverage:
+    input:
+        reference = rules.Prepare_ref_and_primers.output.ref,
+        coverage = rules.Consensus.output.cov,
+    output:
+        temp(f"{datadir + boc}" + "{sample}.tsv")
+    conda:
+        f"{conda_envs}Consensus.yaml"
+    threads: 1
+    params:
+        script = srcdir("scripts/boc.py")
+    shell:
+        """
+        python {params.script} {input.reference} {wildcards.sample} {input.coverage} {output}
+        """
 
-###
-#> add the rules here for the BoC
-###
-
+rule concat_boc:
+    input:
+        pct = expand("{p}{sample}.tsv",
+                    p = f"{datadir + boc}",
+                    sample = SAMPLES)
+    output: f"{res}Width_of_coverage.tsv"
+    threads: 1
+    shell:
+        """
+        echo -e "Sample_name\tWidth_at_mincov_1\tWidth_at_mincov_5\tWidth_at_mincov_10\tWidth_at_mincov_50\tBoC_at_coverage_threshold_100" > {output}
+        cat {input} >> {output}
+        """
 
 if config['platform'] == "illumina":
     rule MultiQC_report:
