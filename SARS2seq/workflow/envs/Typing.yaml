@@ -1,0 +1,12 @@
+name: Typing
+channels:
+  - bioconda
+  - conda-forge
+  - epi2melabs
+  - intel
+  - anaconda
+  - defaults
+dependencies:
+  - pangolin>=2.3.8
+  - nextclade-cli>=0.13.0
+  

@@ -485,3 +485,4 @@ if config['platform'] == "nanopore":
             """
             multiqc -d --force --config {params.conffile} -o {params.outdir} -n multiqc.html {input} > {log} 2>&1
             """
+
