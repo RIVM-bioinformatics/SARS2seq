@@ -52,7 +52,8 @@ def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
             "AdapterRemoval": threads_lowcpu,
             "PrimerRemoval": threads_highcpu,
             "Consensus": threads_lowcpu,
-            "Index": threads_lowcpu
+            "Index": threads_lowcpu,
+            "Typing": threads_lowcpu
         },
         "runparams": {
             "alignmentfilters": "-F 256 -F 512 -F 4 -F 2048",

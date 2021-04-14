@@ -9,4 +9,4 @@ channels:
 dependencies:
   - pangolin>=2.3.8
   - nextclade-cli>=0.13.0
-  
+  - pandas>=1.2.3

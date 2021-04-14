@@ -23,7 +23,8 @@ rule all:
     input:
         f"{res}multiqc.html",
         f"{res + seqs}" + "concat_cov_ge_50.fasta",
-        f"{res}Width_of_coverage.tsv"
+        f"{res}Width_of_coverage.tsv",
+        f"{res}Typing_results.tsv"
     
 rule Prepare_ref_and_primers:
     input:
@@ -486,3 +487,61 @@ if config['platform'] == "nanopore":
             multiqc -d --force --config {params.conffile} -o {params.outdir} -n multiqc.html {input} > {log} 2>&1
             """
 
+rule Catch_typing_versions:
+    output:
+        pangolin = temp(f"{datadir}" + "pangolin.version"),
+        nextclade= temp(f"{datadir}" + "nextclade.version")
+    conda:
+        f"{conda_envs}Typing.yaml"
+    threads: 1
+    shell:
+        """
+        pangolin -v > {output.pangolin}
+        nextclade --version > {output.nextclade}
+        """
+
+rule Typing:
+    input: rules.Consensus.output.cons_1
+    output: 
+        pango = temp(f"{datadir + cons + tbl}" + "{sample}_pangolin.csv"),
+        nextc = temp(f"{datadir + cons + tbl}" + "{sample}_nextclade.csv")
+    conda:
+        f"{conda_envs}Typing.yaml"
+    threads: config['threads']['Typing']
+    log:
+        f"{logdir}" + "Typing_{sample}.log"
+    params:
+        pango_dir = f"{datadir + cons + tbl}",
+    shell:
+        """
+        nextclade -i {input} -c {output.nextc} -j {threads}
+        pangolin {input} -o {params.pango_dir} --outfile {wildcards.sample}_pangolin.csv > {log} 2>&1
+        """
+
+rule format_typing:
+    input:
+        pango = rules.Typing.output.pango,
+        nextc = rules.Typing.output.nextc,
+        pangv = rules.Catch_typing_versions.output.pangolin,
+        nextv = rules.Catch_typing_versions.output.nextclade
+    output: f"{datadir + cons + tbl}" + "{sample}_typingresults.tsv"
+    conda:
+        f"{conda_envs}Typing.yaml"
+    params:
+        script = srcdir('scripts/typingagg.py')
+    shell:
+        """
+        python {params.script} {wildcards.sample} {input.nextv} {input.pangv} {input.nextc} {input.pango} {output}
+        """
+
+rule combine_typing_results:
+    input: 
+        expand( "{p}{sample}_typingresults.tsv",
+                    p = f"{datadir + cons + tbl}",
+                    sample = SAMPLES)
+    output: f"{res}Typing_results.tsv"
+    shell:
+        """
+        echo -e "Sample_name\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tProbability\tPangolin status\tNextClade QC" > {output}
+        cat {input} >> {output}
+        """
