@@ -22,9 +22,10 @@ ref_basename = os.path.splitext(os.path.basename(reffile))[0]
 rule all:
     input:
         f"{res}multiqc.html",
-        f"{res + seqs}" + "concat_cov_ge_50.fasta",
+        f"{res + seqs}concat_cov_ge_50.fasta",
+        f"{res + seqs}concat_mutations_cov_ge_50.tsv",
         f"{res}Width_of_coverage.tsv",
-        f"{res}Typing_results.tsv"
+        f"{res}Typing_results.tsv",
     
 rule Prepare_ref_and_primers:
     input:
@@ -337,7 +338,7 @@ rule Consensus:
         vcf_5 = f"{datadir + aln + vf}" + "{sample}_cov_ge_5.vcf",
         vcf_10 = f"{datadir + aln + vf}" + "{sample}_cov_ge_10.vcf",
         vcf_50 = f"{datadir + aln + vf}" + "{sample}_cov_ge_50.vcf",
-        vcf_100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf"
+        vcf_100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf",
     params:
         mincov = "1 5 10 50 100",
         outdir = f"{datadir + cons + seqs}",
@@ -390,10 +391,46 @@ rule concat_seqs:
         cat {params.wcar_100} >> {output.cons_100}
         """
 
+rule vcfs_to_tsvs:
+    input:
+        vcf_1 = f"{datadir + aln + vf}" + "{sample}_cov_ge_1.vcf",
+        vcf_5 = f"{datadir + aln + vf}" + "{sample}_cov_ge_5.vcf",
+        vcf_10 = f"{datadir + aln + vf}" + "{sample}_cov_ge_10.vcf",
+        vcf_50 = f"{datadir + aln + vf}" + "{sample}_cov_ge_50.vcf",
+        vcf_100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf",
+    output:
+        tsv_1 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_1.tsv"),
+        tsv_5 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_5.tsv"),
+        tsv_10 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_10.tsv"),
+        tsv_50 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_50.tsv"),
+        tsv_100 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_100.tsv"),
+    conda:
+        f"{conda_envs}Mutations.yaml"
+    log:
+        f"{logdir}" + "{sample}_vcf_to_tsv.log"
+    shell:
+        """
+        bcftools query {input.vcf_1}   -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.tsv_1} 2> {log}
+        bcftools query {input.vcf_5}   -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.tsv_5} 2>> {log}
+        bcftools query {input.vcf_10}  -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.tsv_10} 2>> {log}
+        bcftools query {input.vcf_50}  -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.tsv_50} 2>> {log}
+        bcftools query {input.vcf_100} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.tsv_100} 2>> {log}
+        """
 
-###
-#> add some rules here for concatenating the vcf files to a single tsv
-###
+rule concat_tsvs:
+    input:
+        expand(
+            "{p}{sample}_cov_ge_50.tsv",
+            p = datadir + aln + vf,
+            sample = SAMPLES
+            )
+    output:
+        f"{res + seqs}concat_mutations_cov_ge_50.tsv",
+    log:
+        f"{logdir}" + "concat_tsvs.log"
+    run:
+        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output} 2> {log}")
+        shell("cat {input} >> {output} 2>> {log}")
 
 rule Get_Breadth_of_coverage:
     input:
