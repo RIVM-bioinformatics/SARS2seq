@@ -25,11 +25,15 @@ ref_basename = os.path.splitext(os.path.basename(reffile))[0]
 rule all:
     input:
         f"{res}multiqc.html",
-        f"{res + seqs}concat_cov_ge_50.fasta",
-        f"{res + seqs}concat_mutations_cov_ge_50.tsv",
+        expand("{p}concat_cov_ge_{cov}.fasta",
+            p = res + seqs,
+            cov = [1,5,10,50,100]),
+        expand("{p}concat_mutations_cov_ge_{cov}.tsv",
+            p = res + muts,
+            cov = [1,5,10,50,100]),
         f"{res}Width_of_coverage.tsv",
         f"{res}Typing_results.tsv",
-        f"{res}" + "annotation_happened.txt",
+        f"{res}" + "annotation_check.txt",
     
 rule Prepare_ref_and_primers:
     input:
@@ -489,39 +493,24 @@ rule Consensus:
         --noambiguity --threads {threads}
         """
 
-rule concat_seqs:
-    input:
-        cons = expand( "{p}{sample}_cov_ge_{t}.fa",
-                p = f"{datadir + cons + seqs}",
-                t = [1, 5, 10, 50, 100],
-                sample = SAMPLES
-                )
-    output:
-        cons_1 = f"{res + seqs}" + "concat_cov_ge_1.fasta",
-        cons_5 = f"{res + seqs}" + "concat_cov_ge_5.fasta",
-        cons_10 = f"{res + seqs}" + "concat_cov_ge_10.fasta",
-        cons_50 = f"{res + seqs}" + "concat_cov_ge_50.fasta",
-        cons_100 = f"{res + seqs}" + "concat_cov_ge_100.fasta",
-    params:
-        wcar_1 = f"{datadir + cons + seqs}" + "*_cov_ge_1.fa",
-        wcar_5 = f"{datadir + cons + seqs}" + "*_cov_ge_5.fa",
-        wcar_10 = f"{datadir + cons + seqs}" + "*_cov_ge_10.fa",
-        wcar_50 = f"{datadir + cons + seqs}" + "*_cov_ge_50.fa",
-        wcar_100 = f"{datadir + cons + seqs}" + "*_cov_ge_100.fa",
-    shell:
-        """
-        cat {params.wcar_1} >> {output.cons_1}
-        cat {params.wcar_5} >> {output.cons_5}
-        cat {params.wcar_10} >> {output.cons_10}
-        cat {params.wcar_50} >> {output.cons_50}
-        cat {params.wcar_100} >> {output.cons_100}
-        """
+for x in [1,5,10,50,100]:
+    rule:
+        name: f"concat_seq_cov_{x}"
+        input: 
+            expand( "{p}{sample}_cov_ge_" + f"{x}.fa",
+                    p = f"{datadir + cons + seqs}",
+                    sample = SAMPLES)
+        output: f"{res + seqs}" + "concat_cov_ge_" + f"{x}.fasta"
+        shell:
+            """
+            cat {input} >> {output}
+            """
 
 rule fetch_problematic_sites:
     output:
-        vcf         = f"{datadir + ann}" + "problematic_sites.vcf",
-        vcf_gz      = f"{datadir + ann}" + "problematic_sites.vcf.gz",
-        vcf_gz_tbi  = f"{datadir + ann}" + "problematic_sites.vcf.gz.tbi",
+        vcf         = temp(f"{datadir + ann}" + "problematic_sites.vcf"),
+        vcf_gz      = temp(f"{datadir + ann}" + "problematic_sites.vcf.gz"),
+        vcf_gz_tbi  = temp(f"{datadir + ann}" + "problematic_sites.vcf.gz.tbi"),
     conda:
         f"{conda_envs}Mutations.yaml"
     params:
@@ -539,6 +528,8 @@ rule annotate_problematic_sites:
     input:
         vcf = f"{datadir + aln + vf}" + "{sample}_cov_ge_{cov}.vcf",
         problematic_sites = rules.fetch_problematic_sites.output.vcf_gz,
+        sites_temp1 = rules.fetch_problematic_sites.output.vcf,
+        sites_temp2 = rules.fetch_problematic_sites.output.vcf_gz_tbi
     output:
         vcf = f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf",
         vcf_gz = temp(f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf.gz"),
@@ -555,42 +546,43 @@ rule annotate_problematic_sites:
             -c FILTER,EXC,GENE,AA_POS,AA_REF,AA_ALT > {output.vcf} 2>> {log}
         """
 
-rule annotation_happened:
+rule verify_annotation:
     input:
         expand(f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf",
             sample = SAMPLES, cov = [1,5,10,50,100]
         ),
     output:
-        temp(f"{res}" + "annotation_happened.txt")
-    shell: "touch {output}"
+        temp(touch(f"{res}" + "annotation_check.txt"))
 
-rule vcf_to_tsv:
-    input:
-        f"{datadir + aln + vf}" + "{sample}_cov_ge_{cov}.vcf",
-    output:
-        temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_{cov}.tsv"),
-    conda: f"{conda_envs}Mutations.yaml"
-    log:
-        f"{logdir}" + "vcf_to_tsv_{sample}_cov_ge_{cov}.log"
-    shell:
-        """
-        bcftools query {input} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output} 2>> {log}
-        """
+for x in [1,5,10,50,100]:
+    rule:
+        name: f"vcf_to_tsv_{x}"
+        input: f"{datadir + aln + vf}" + "{sample}" + f"_cov_ge_{x}.vcf",
+        output: temp(f"{datadir + aln + vf}" + "{sample}" + f"_cov_ge_{x}.tsv"),
+        conda: f"{conda_envs}Mutations.yaml"
+        log:
+            f"{logdir}" + "vcf_to_tsv_{sample}_cov_ge_" + f"{x}.log"
+        shell:
+            """
+            bcftools query {input} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output} 2>> {log}
+            """
 
-rule concat_tsvs:
-    input:
-        expand(
-            "{p}{sample}_cov_ge_50.tsv",
-            p = datadir + aln + vf,
-            sample = SAMPLES
-            )
-    output:
-        f"{res + seqs}concat_mutations_cov_ge_50.tsv",
-    log:
-        f"{logdir}" + "concat_tsvs.log"
-    run:
-        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output} 2> {log}")
-        shell("cat {input} >> {output} 2>> {log}")
+for x in [1,5,10,50,100]:
+    rule:
+        name: f"concat_tsv_coverage_{x}"
+        input:
+            expand(
+                "{p}{sample}_cov_ge_" + f"{x}.tsv",
+                p = datadir + aln + vf,
+                sample = SAMPLES
+                )
+        output:
+            f"{res + muts}concat_mutations_cov_ge_{x}.tsv",
+        log:
+            f"{logdir}concat_tsv{x}.log"
+        run:
+            shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output} 2> {log}")
+            shell("cat {input} >> {output} 2>> {log}")
 
 
 rule Get_Breadth_of_coverage:
@@ -710,6 +702,7 @@ rule Typing:
         f"{logdir}" + "Typing_{sample}.log"
     params:
         pango_dir = f"{datadir + cons + tbl}",
+    shadow: "minimal"
     shell:
         """
         nextclade -i {input} -c {output.nextc} -j {threads} > {log} 2>&1
