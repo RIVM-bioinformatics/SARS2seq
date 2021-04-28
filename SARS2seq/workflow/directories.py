@@ -24,6 +24,7 @@ aln = "alignment/"
 bf = "bam-files/"
 vf = "vcf-files/"
 features = "features/"
+ann = "annotations/"
 
 seqs = "sequences/"
 com = "combined/"

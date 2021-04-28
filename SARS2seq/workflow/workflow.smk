@@ -25,9 +25,11 @@ ref_basename = os.path.splitext(os.path.basename(reffile))[0]
 rule all:
     input:
         f"{res}multiqc.html",
-        f"{res + seqs}" + "concat_cov_ge_50.fasta",
+        f"{res + seqs}concat_cov_ge_50.fasta",
+        f"{res + seqs}concat_mutations_cov_ge_50.tsv",
         f"{res}Width_of_coverage.tsv",
-        f"{res}Typing_results.tsv"
+        f"{res}Typing_results.tsv",
+        f"{res}" + "annotation_happened.txt",
     
 rule Prepare_ref_and_primers:
     input:
@@ -441,6 +443,10 @@ if config["platform"] == "iontorrent":
             samtools index {output.bam} >> {log} 2>&1
             """
 
+#TODO: Add one of the following lines to vcf headers (see https://samtools.github.io/hts-specs/VCFv4.2.pdf chapter 1.2.7): 
+    ##contig=<ID=MN908947.3>
+    ##contig=<ID=MN908947.3,length=29903>
+
 rule Consensus:
     input: 
         bam = rules.Alignment.output.bam,
@@ -458,7 +464,7 @@ rule Consensus:
         vcf_5 = f"{datadir + aln + vf}" + "{sample}_cov_ge_5.vcf",
         vcf_10 = f"{datadir + aln + vf}" + "{sample}_cov_ge_10.vcf",
         vcf_50 = f"{datadir + aln + vf}" + "{sample}_cov_ge_50.vcf",
-        vcf_100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf"
+        vcf_100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf",
     params:
         mincov = "1 5 10 50 100",
         outdir = f"{datadir + cons + seqs}",
@@ -511,10 +517,81 @@ rule concat_seqs:
         cat {params.wcar_100} >> {output.cons_100}
         """
 
+rule fetch_problematic_sites:
+    output:
+        vcf         = f"{datadir + ann}" + "problematic_sites.vcf",
+        vcf_gz      = f"{datadir + ann}" + "problematic_sites.vcf.gz",
+        vcf_gz_tbi  = f"{datadir + ann}" + "problematic_sites.vcf.gz.tbi",
+    conda:
+        f"{conda_envs}Mutations.yaml"
+    params:
+        url = 'https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf'
+    log:
+        f"{logdir}fetch_problematic_sites.log"
+    shell: 
+        """
+        curl -vs {params.url} 2> {log} > {output.vcf} 2>> {log}
+        bgzip -c {output.vcf} > {output.vcf_gz} 2>> {log}
+        tabix {output.vcf_gz} 2>> {log}
+        """
 
-###
-#> add some rules here for concatenating the vcf files to a single tsv
-###
+rule annotate_problematic_sites:
+    input:
+        vcf = f"{datadir + aln + vf}" + "{sample}_cov_ge_{cov}.vcf",
+        problematic_sites = rules.fetch_problematic_sites.output.vcf_gz,
+    output:
+        vcf = f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf",
+        vcf_gz = temp(f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf.gz"),
+        vcf_gz_tbi = temp(f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf.gz.tbi"),
+    conda: f"{conda_envs}Mutations.yaml"
+    shadow: "shallow"
+    log:
+        f"{logdir}" + "annotate_{sample}_cov_ge_{cov}.log"
+    shell:
+        """
+        bgzip -c {input.vcf} > {output.vcf_gz} 2> {log}
+        tabix -f {output.vcf_gz} 2>> {log}
+        bcftools annotate -Ov -a {input.problematic_sites} {output.vcf_gz} \
+            -c FILTER,EXC,GENE,AA_POS,AA_REF,AA_ALT > {output.vcf} 2>> {log}
+        """
+
+rule annotation_happened:
+    input:
+        expand(f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf",
+            sample = SAMPLES, cov = [1,5,10,50,100]
+        ),
+    output:
+        temp(f"{res}" + "annotation_happened.txt")
+    shell: "touch {output}"
+
+rule vcf_to_tsv:
+    input:
+        f"{datadir + aln + vf}" + "{sample}_cov_ge_{cov}.vcf",
+    output:
+        temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_{cov}.tsv"),
+    conda: f"{conda_envs}Mutations.yaml"
+    log:
+        f"{logdir}" + "vcf_to_tsv_{sample}_cov_ge_{cov}.log"
+    shell:
+        """
+        bcftools query {input} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output} 2>> {log}
+        """
+
+rule concat_tsvs:
+    input:
+        expand(
+            "{p}{sample}_cov_ge_50.tsv",
+            p = datadir + aln + vf,
+            sample = SAMPLES
+            )
+    output:
+        f"{res + seqs}concat_mutations_cov_ge_50.tsv",
+    log:
+        f"{logdir}" + "concat_tsvs.log"
+    run:
+        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output} 2> {log}")
+        shell("cat {input} >> {output} 2>> {log}")
+
 
 rule Get_Breadth_of_coverage:
     input:
