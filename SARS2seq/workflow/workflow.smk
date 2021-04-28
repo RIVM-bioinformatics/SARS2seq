@@ -10,12 +10,15 @@ snakemake.utils.min_version("6.0")
 yaml.warnings({'YAMLLoadWarning': False})
 shell.executable("/bin/bash")
 
-
 SAMPLES = {}
 with open(config["sample_sheet"]) as sample_sheet_file:
     SAMPLES = yaml.load(sample_sheet_file)
 
 primerfile = config["primer_file"]
+
+if primerfile == "NONE":
+    primerfile = srcdir("files/empty.primers")
+
 reffile = srcdir("files/MN908947.fasta")
 ref_basename = os.path.splitext(os.path.basename(reffile))[0]
 
@@ -219,28 +222,120 @@ if config["platform"] == "nanopore":
             -o {output.fq} -h {output.html} -j {output.json} > {log} 2>&1
             """
 
-rule RemovePrimers:
-    input: 
-        fq = rules.QC_filter.output.fq,
-        pr = rules.Prepare_ref_and_primers.output.prm,
-        ref = rules.Prepare_ref_and_primers.output.ref
-    output: f"{datadir + cln + prdir}" + "{sample}.fastq"
-    conda: 
-        f"{conda_envs}Clean.yaml"
-    log:
-        f"{logdir}" + "RemovePrimers_{sample}.log"
-    benchmark:
-        f"{logdir + bench}" + "RemovePrimers_{sample}.txt"
-    threads: config['threads']['PrimerRemoval']
-    params:
-        amplicontype = config["amplicon_type"]
-    shell:
-        """
-        AmpliGone -i {input.fq} \
-        -ref {input.ref} -pr {input.pr} \
-        -o {output} -at {params.amplicontype} \
-        -t {threads}
-        """
+if config["platform"] == "iontorrent":
+    rule QC_raw:
+        input: lambda wildcards: SAMPLES[wildcards.sample]
+        output:
+            html    =   f"{datadir + qc_pre}" + "{sample}_fastqc.html",
+            zip     =   f"{datadir + qc_pre}" + "{sample}_fastqc.zip"
+        conda:
+            f"{conda_envs}Clean.yaml"
+        log:
+            f"{logdir}" + "QC_raw_data_{sample}.log"
+        benchmark:
+            f"{logdir + bench}" + "QC_raw_data_{sample}.txt"
+        threads: config['threads']['QC']
+        params:
+            output_dir  =   f"{datadir + qc_pre}",
+            script = srcdir("scripts/fastqc_wrapper.sh")
+        shell:
+            """
+            bash {params.script} {input} {params.output_dir} {output.html} {output.zip} {log}
+            """
+
+    rule RemoveAdapters_p1:
+        input: 
+            ref = rules.Prepare_ref_and_primers.output.ref,
+            fq  = lambda wildcards: SAMPLES[wildcards.sample]
+        output:
+            bam     = f"{datadir + cln + raln}" + "{sample}.bam",
+            index   = f"{datadir + cln + raln}" + "{sample}.bam.bai"
+        conda:
+            f"{conda_envs}Alignment.yaml"
+        log:
+            f"{logdir}" + "RemoveAdapters_p1_{sample}.log"
+        benchmark:
+            f"{logdir + bench}"+ "RemoveAdapters_p1_{sample}.txt"
+        threads: config['threads']['Alignments']
+        params:
+            mapthreads = config['threads']['Alignments'] - 1,
+            filters = config["runparams"]["alignmentfilters"]
+        shell: 
+            """
+            minimap2 -ax sr -t {params.mapthreads} {input.ref} {input.fq} 2>> {log} |\
+            samtools view -@ {threads} {params.filters} -uS 2>> {log} |\
+            samtools sort -o {output.bam} >> {log} 2>&1
+            samtools index {output.bam} >> {log} 2>&1
+            """
+    
+    rule RemoveAdapters_p2:
+        input: rules.RemoveAdapters_p1.output.bam
+        output: f"{datadir + cln + noad}" + "{sample}.fastq"
+        conda:
+            f"{conda_envs}Clean.yaml"
+        threads: config['threads']['AdapterRemoval']
+        params:
+            script = srcdir('scripts/clipper.py')
+        shell: 
+            """
+            python {params.script} --input {input} --output {output} --threads {threads}
+            """
+
+    rule QC_filter:
+        input: rules.RemoveAdapters_p2.output
+        output: 
+            fq = f"{datadir + cln + qcfilt}" + "{sample}.fastq",
+            html = f"{datadir + cln + qcfilt + html}" + "{sample}.fastp.html",
+            json = f"{datadir + cln + qcfilt + json}" + "{sample}.fastp.json"
+        conda: 
+            f"{conda_envs}Clean.yaml"
+        log:
+            f"{logdir}" + "Cleanup_{sample}.log"
+        benchmark:
+            f"{logdir + bench}" + "Cleanup_{sample}.txt"
+        threads: config['threads']['QC']
+        params:
+            score = config['runparams']['qc_filter_iontorrent'],
+            size = config['runparams']['qc_window_iontorrent'],
+            length = config['runparams']['qc_min_readlength']
+        shell:
+            """
+            fastp --thread {threads} -i {input} \
+            --cut_right -M {params.score} -W {params.size} -l {params.length} \
+            -o {output.fq} -h {output.html} -j {output.json} > {log} 2>&1
+            """
+
+if config["primer_file"] != "NONE":
+    rule RemovePrimers:
+        input: 
+            fq = rules.QC_filter.output.fq,
+            pr = rules.Prepare_ref_and_primers.output.prm,
+            ref = rules.Prepare_ref_and_primers.output.ref
+        output: f"{datadir + cln + prdir}" + "{sample}.fastq"
+        conda: 
+            f"{conda_envs}Clean.yaml"
+        log:
+            f"{logdir}" + "RemovePrimers_{sample}.log"
+        benchmark:
+            f"{logdir + bench}" + "RemovePrimers_{sample}.txt"
+        threads: config['threads']['PrimerRemoval']
+        params:
+            amplicontype = config["amplicon_type"]
+        shell:
+            """
+            AmpliGone -i {input.fq} \
+            -ref {input.ref} -pr {input.pr} \
+            -o {output} -at {params.amplicontype} \
+            -t {threads}
+            """
+if config["primer_file"] == "NONE":
+    rule RemovePrimers:
+        input: rules.QC_filter.output.fq
+        output: f"{datadir + cln + prdir}" + "{sample}.fastq"
+        shell:
+            """
+            cp {input} {output}
+            """
 
 rule QC_clean:
     input: rules.RemovePrimers.output
@@ -315,6 +410,32 @@ if config["platform"] == "nanopore":
         shell: 
             """
             minimap2 -ax map-ont -t {params.mapthreads} {input.ref} {input.fq} 2>> {log} |\
+            samtools view -@ {threads} {params.filters} -uS 2>> {log} |\
+            samtools sort -o {output.bam} >> {log} 2>&1
+            samtools index {output.bam} >> {log} 2>&1
+            """
+
+if config["platform"] == "iontorrent":
+    rule Alignment:
+        input:
+            fq = rules.RemovePrimers.output,
+            ref = rules.Prepare_ref_and_primers.output.ref
+        output:
+            bam = f"{datadir + aln + bf}" + "{sample}.bam",
+            index = f"{datadir + aln + bf}" + "{sample}.bam.bai"
+        conda: 
+            f"{conda_envs}Alignment.yaml"
+        log:
+            f"{logdir}" + "Alignment_{sample}.log"
+        benchmark:
+            f"{logdir + bench}" + "Alignment_{sample}.txt"
+        threads: config['threads']['Alignments']
+        params:
+            mapthreads = config['threads']['Alignments'] - 1,
+            filters = config["runparams"]["alignmentfilters"]
+        shell: 
+            """
+            minimap2 -ax sr -t {params.mapthreads} {input.ref} {input.fq} 2>> {log} |\
             samtools view -@ {threads} {params.filters} -uS 2>> {log} |\
             samtools sort -o {output.bam} >> {log} 2>&1
             samtools index {output.bam} >> {log} 2>&1
@@ -456,7 +577,7 @@ if config['platform'] == "illumina":
             multiqc -d --force --config {params.conffile} -o {params.outdir} -n multiqc.html {input} > {log} 2>&1
             """
 
-if config['platform'] == "nanopore":
+if config['platform'] == "nanopore" or config['platform'] == "iontorrent":
     rule MultiQC_report:
         input: 
             expand("{p}{sample}_fastqc.zip",
@@ -514,7 +635,7 @@ rule Typing:
         pango_dir = f"{datadir + cons + tbl}",
     shell:
         """
-        nextclade -i {input} -c {output.nextc} -j {threads}
+        nextclade -i {input} -c {output.nextc} -j {threads} > {log} 2>&1
         pangolin {input} -o {params.pango_dir} --outfile {wildcards.sample}_pangolin.csv > {log} 2>&1
         """
 
@@ -545,3 +666,4 @@ rule combine_typing_results:
         echo -e "Sample_name\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tProbability\tPangolin status\tNextClade QC" > {output}
         cat {input} >> {output}
         """
+

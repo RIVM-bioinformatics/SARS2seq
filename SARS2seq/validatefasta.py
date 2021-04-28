@@ -11,6 +11,8 @@ def ContainsSpecials(seq):
         return True
     
 def IsValidFasta(inputfile):
+    if inputfile == "NONE":
+        return True
     results = []
     for record in SeqIO.parse(inputfile, "fasta"):
         results.append(ContainsSpecials(str(record.seq)))

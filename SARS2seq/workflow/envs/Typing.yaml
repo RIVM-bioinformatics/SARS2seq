@@ -7,6 +7,7 @@ channels:
   - anaconda
   - defaults
 dependencies:
+  - python=3.7
   - pangolin>=2.3.8
   - nextclade-cli>=0.13.0
   - pandas>=1.2.3

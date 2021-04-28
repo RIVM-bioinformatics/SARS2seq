@@ -28,6 +28,8 @@ def get_args(givenargs):
     """
 
     def fasta_input(choices, fname):
+        if fname == "NONE":
+            return fname
         if os.path.isfile(fname):
             ext = "".join(pathlib.Path(fname).suffixes)
             if ext not in choices:
@@ -88,8 +90,8 @@ def get_args(givenargs):
         default="nanopore",
         const="nanopore",
         nargs='?',
-        choices=('nanopore', 'illumina'),
-        help="Define the sequencing platform that was used to generate the dataset, either being 'nanopore' or 'illumina', see the docs for more info",
+        choices=('nanopore', 'illumina', 'iontorrent'),
+        help="Define the sequencing platform that was used to generate the dataset, either being 'nanopore', 'illumina' or 'iontorrent', see the docs for more info",
         required=True
     )
 
@@ -161,7 +163,10 @@ def main():
     
     inpath = os.path.abspath(flags.input)
     #refpath = os.path.abspath(flags.reference)
-    primpath = os.path.abspath(flags.primers)
+    if flags.primers != "NONE":
+        primpath = os.path.abspath(flags.primers)
+    else:
+        primpath = "NONE"
     outpath = os.path.abspath(flags.output)
     
     here = os.path.abspath(os.path.dirname(__file__))
