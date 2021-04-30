@@ -548,7 +548,7 @@ rule annotate_problematic_sites:
         f"{logdir}" + "annotate_{sample}_cov_ge_{cov}.log"
     shell:
         """
-        bgzip -c {input.vcf} > {output.vcf_gz} 2> {log}
+        bcftools sort -O z -o {output.vcf_gz} {input.vcf} 2> {log}
         tabix -f {output.vcf_gz} 2>> {log}
         bcftools annotate -Ov -a {input.problematic_sites} {output.vcf_gz} \
             -c FILTER,EXC,GENE,AA_POS,AA_REF,AA_ALT > {output.vcf} 2>> {log}
