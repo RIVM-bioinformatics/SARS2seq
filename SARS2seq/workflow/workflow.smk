@@ -22,18 +22,26 @@ if primerfile == "NONE":
 reffile = srcdir("files/MN908947.fasta")
 ref_basename = os.path.splitext(os.path.basename(reffile))[0]
 
+mincoverages = [1,5,10,50,100]
+orfs = ["orf1a","orf1b","S","ORF3a","E","M","ORF6","ORF7a","ORF8","N","ORF10"]
+
+
 rule all:
     input:
         f"{res}multiqc.html",
         expand("{p}concat_cov_ge_{cov}.fasta",
             p = res + seqs,
-            cov = [1,5,10,50,100]),
+            cov = mincoverages),
         expand("{p}concat_mutations_cov_ge_{cov}.tsv",
             p = res + muts,
-            cov = [1,5,10,50,100]),
+            cov = mincoverages),
         f"{res}Width_of_coverage.tsv",
         f"{res}Typing_results.tsv",
         f"{res}" + "annotation_check.txt",
+        expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
+            p = res + amino,
+            cov = mincoverages,
+            o = orfs)
     
 rule Prepare_ref_and_primers:
     input:
@@ -493,7 +501,7 @@ rule Consensus:
         --noambiguity --threads {threads}
         """
 
-for x in [1,5,10,50,100]:
+for x in mincoverages:
     rule:
         name: f"concat_seq_cov_{x}"
         input: 
@@ -549,12 +557,12 @@ rule annotate_problematic_sites:
 rule verify_annotation:
     input:
         expand(f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf",
-            sample = SAMPLES, cov = [1,5,10,50,100]
+            sample = SAMPLES, cov = mincoverages
         ),
     output:
         temp(touch(f"{res}" + "annotation_check.txt"))
 
-for x in [1,5,10,50,100]:
+for x in mincoverages:
     rule:
         name: f"vcf_to_tsv_{x}"
         input: f"{datadir + aln + vf}" + "{sample}" + f"_cov_ge_{x}.vcf",
@@ -567,7 +575,7 @@ for x in [1,5,10,50,100]:
             bcftools query {input} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output} 2>> {log}
             """
 
-for x in [1,5,10,50,100]:
+for x in mincoverages:
     rule:
         name: f"concat_tsv_coverage_{x}"
         input:
@@ -737,3 +745,38 @@ rule combine_typing_results:
         cat {input} >> {output}
         """
 
+for x in mincoverages:
+    for o in orfs:
+        rule:
+            name: f"Extract_AA_orf-{o}_cov_{x}"
+            input:
+                fasta = f"{datadir + cons + seqs}" + "{sample}" + f"_cov_ge_{x}.fa",
+                gff = rules.Consensus.output.gff
+            output: f"{datadir + cons + amino + o}/" + "{sample}_" + f"{x}.fa"
+            conda:
+                f"{conda_envs}Consensus.yaml"
+            params:
+                c = x,
+                orf = o,
+                outdir = f"{datadir + cons + amino}",
+                script = srcdir('scripts/AA_extract.py')
+            threads: 1
+            shell:
+                """
+                python {params.script} {input.fasta} {input.gff} {params.orf} {wildcards.sample} {params.c} {params.outdir}
+                """
+
+for x in mincoverages:
+    for o in orfs:
+        rule:
+            name: f"Concat_AminoAcids_orf-{o}_cov_{x}"
+            input:
+                expand("{p}/{sample}_{cov}.fa",
+                    p = f"{datadir + cons + amino + o}",
+                    sample = SAMPLES,
+                    cov = x)
+            output: f"{res + amino}coverage_{x}/concat_ORF-{o}.fa"
+            shell:
+                """
+                cat {input} >> {output}
+                """

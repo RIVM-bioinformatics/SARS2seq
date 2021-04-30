@@ -28,6 +28,7 @@ ann = "annotations/"
 muts = "mutations/"
 
 seqs = "sequences/"
+amino = "aminoacids/"
 com = "combined/"
 indiv = "individual/"
 
