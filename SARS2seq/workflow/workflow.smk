@@ -514,30 +514,43 @@ for x in mincoverages:
             cat {input} >> {output}
             """
 
-rule fetch_problematic_sites:
+rule get_site_maskings:
+    output: temp(f"{datadir + ann}" + "problematic_sites.vcf")
+    params:
+        url = 'https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf',
+        localcopy = srcdir('files/maskings.vcf')
+    run:
+        import requests
+        from shutil import copyfile
+        r = requests.get(params.url)
+        if r.ok is True:
+            with open(str(output), "wb") as outfile:
+                outfile.write(r.content)
+        else:
+            copyfile(params.localcopy, output)
+
+
+rule process_maskings_vcf:
+    input: rules.get_site_maskings.output
     output:
-        vcf         = temp(f"{datadir + ann}" + "problematic_sites.vcf"),
         vcf_gz      = temp(f"{datadir + ann}" + "problematic_sites.vcf.gz"),
         vcf_gz_tbi  = temp(f"{datadir + ann}" + "problematic_sites.vcf.gz.tbi"),
     conda:
         f"{conda_envs}Mutations.yaml"
-    params:
-        url = 'https://raw.githubusercontent.com/W-L/ProblematicSites_SARS-CoV2/master/problematic_sites_sarsCov2.vcf'
     log:
-        f"{logdir}fetch_problematic_sites.log"
+        f"{logdir}process_maskings_vcf.log"
     shell: 
         """
-        curl -vs {params.url} 2> {log} > {output.vcf} 2>> {log}
-        bgzip -c {output.vcf} > {output.vcf_gz} 2>> {log}
+        bgzip -c {input} > {output.vcf_gz} 2>> {log}
         tabix {output.vcf_gz} 2>> {log}
         """
 
 rule annotate_problematic_sites:
     input:
         vcf = f"{datadir + aln + vf}" + "{sample}_cov_ge_{cov}.vcf",
-        problematic_sites = rules.fetch_problematic_sites.output.vcf_gz,
-        sites_temp1 = rules.fetch_problematic_sites.output.vcf,
-        sites_temp2 = rules.fetch_problematic_sites.output.vcf_gz_tbi
+        problematic_sites = rules.process_maskings_vcf.output.vcf_gz,
+        sites_temp1 = rules.get_site_maskings.output,
+        sites_temp2 = rules.process_maskings_vcf.output.vcf_gz_tbi
     output:
         vcf = f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf",
         vcf_gz = temp(f"{datadir + aln + vf + ann}" + "{sample}_cov_ge_{cov}_annotated.vcf.gz"),
@@ -741,7 +754,7 @@ rule combine_typing_results:
     output: f"{res}Typing_results.tsv"
     shell:
         """
-        echo -e "Sample_name\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tProbability\tPangolin status\tNextClade QC" > {output}
+        echo -e "Sample_name\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tPangolin status\tNextClade QC" > {output}
         cat {input} >> {output}
         """
 
