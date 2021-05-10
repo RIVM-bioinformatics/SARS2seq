@@ -228,8 +228,9 @@ def main():
                             drmaa_log_dir=parsedconfig['drmaa-log-dir'],
                             dryrun=parsedconfig['dryrun'],
                             configfiles=[snakeparams])
-        
-    snakemake.snakemake(Snakefile,
-                        workdir=workdir,
-                        report="results/snakemake_report.html",
-                        configfiles=[snakeparams])
+    
+    if parsedconfig['dryrun'] == False:
+        snakemake.snakemake(Snakefile,
+                            workdir=workdir,
+                            report="results/snakemake_report.html",
+                            configfiles=[snakeparams])
