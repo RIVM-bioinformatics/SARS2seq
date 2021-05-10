@@ -1,0 +1,13 @@
+##sequence-region MN908947.3 1 29903
+##species Severe acute respiratory syndrome coronavirus 2 isolate Wuhan-Hu-1, complete genome
+MN908947.3	Genbank	gene	266	13468	.	+	.	ID=gene-orf1a;Name=orf1a;gbkey=Gene;gene=orf1a;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	13468	21555	.	+	.	ID=gene-orf1b;Name=orf1b;gbkey=Gene;gene=orf1b;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	21563	25384	.	+	.	ID=gene-S;Name=S;gbkey=Gene;gene=S;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	25393	26220	.	+	.	ID=gene-ORF3a;Name=ORF3a;gbkey=Gene;gene=ORF3a;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	26245	26472	.	+	.	ID=gene-E;Name=E;gbkey=Gene;gene=E;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	26523	27191	.	+	.	ID=gene-M;Name=M;gbkey=Gene;gene=M;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	27202	27387	.	+	.	ID=gene-ORF6;Name=ORF6;gbkey=Gene;gene=ORF6;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	27394	27759	.	+	.	ID=gene-ORF7a;Name=ORF7a;gbkey=Gene;gene=ORF7a;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	27894	28259	.	+	.	ID=gene-ORF8;Name=ORF8;gbkey=Gene;gene=ORF8;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	28274	29533	.	+	.	ID=gene-N;Name=N;gbkey=Gene;gene=N;gene_biotype=protein_coding
+MN908947.3	Genbank	gene	29558	29674	.	+	.	ID=gene-ORF10;Name=ORF10;gbkey=Gene;gene=ORF10;gene_biotype=protein_coding
