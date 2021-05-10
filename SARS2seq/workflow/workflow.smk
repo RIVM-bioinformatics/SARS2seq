@@ -794,3 +794,17 @@ for x in mincoverages:
                 """
                 cat {input} >> {output}
                 """
+
+
+onsuccess:
+    print("""
+    SARS2seq is finished with processing all the files in the given input directory.
+
+    Generating a HTML report and shutting down...
+    """)
+
+onerror:
+    print("""
+    An error occurred and SARS2seq had to shut down.
+    Please check the input and logfiles for any abnormalities and try again.
+    """)
