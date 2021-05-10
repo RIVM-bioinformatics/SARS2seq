@@ -183,11 +183,6 @@ def main():
     ##> Check the default userprofile, make it if it doesn't exist
     conf = ReadConfig(os.path.expanduser('~/.SARS2seq_defaultprofile.ini'))
     
-    ###@ validate the reference and primer files
-    #if IsValidFasta(refpath) is False:
-    #    print(f'{color.RED + color.BOLD}The given reference fasta contains illegal characters in its sequence.{color.END}\nPlease check the reference fasta and try again. Exiting...')
-    #    sys.exit(1)
-    
     if IsValidFasta(primpath) is False:
         print(f'{color.RED + color.BOLD}The given fasta with primer sequences contains illegal characters in its sequences.{color.END}\nPlease check the primer fasta and try again. Exiting...')
         sys.exit(1)
@@ -233,3 +228,8 @@ def main():
                             drmaa_log_dir=parsedconfig['drmaa-log-dir'],
                             dryrun=parsedconfig['dryrun'],
                             configfiles=[snakeparams])
+        
+    snakemake.snakemake(Snakefile,
+                        workdir=workdir,
+                        report="results/snakemake_report.html",
+                        configfiles=[snakeparams])
