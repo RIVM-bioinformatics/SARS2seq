@@ -707,6 +707,7 @@ rule Catch_typing_versions:
     threads: 1
     shell:
         """
+        pangolin --update
         pangolin -v > {output.pangolin}
         nextclade --version > {output.nextclade}
         """

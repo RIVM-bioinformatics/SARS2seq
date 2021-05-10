@@ -8,6 +8,6 @@ channels:
   - defaults
 dependencies:
   - python=3.7
-  - pangolin>=2.3.8
+  - pangolin>=2.4.2
   - nextclade-cli>=0.13.0
   - pandas>=1.2.3
