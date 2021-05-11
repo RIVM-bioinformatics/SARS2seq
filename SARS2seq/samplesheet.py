@@ -2,9 +2,11 @@
 Write the samplesheets
 """
 
-import re
-import yaml
 import os
+import re
+
+import yaml
+
 
 def illumina_sheet(inputdir, sheet):
     illuminapattern = re.compile("(.*)(_|\.)R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
@@ -21,6 +23,7 @@ def illumina_sheet(inputdir, sheet):
     samplesheet.close()
     pass
 
+
 def nanopore_sheet(inputdir, sheet):
     nanoporepattern = re.compile("(.*)\.f(ast)?q(\.gz)?")
     samples = {}
@@ -34,6 +37,7 @@ def nanopore_sheet(inputdir, sheet):
         yaml.dump(samples, samplesheet, default_flow_style=False)
     samplesheet.close()
     pass
+
 
 def iontorrent_sheet(inputdir, sheet):
     nanoporepattern = re.compile("(.*)\.f(ast)?q(\.gz)?")
@@ -49,13 +53,14 @@ def iontorrent_sheet(inputdir, sheet):
     samplesheet.close()
     pass
 
+
 def WriteSampleSheet(input, platform):
-    if platform == 'illumina':
+    if platform == "illumina":
         illumina_sheet(input, "samplesheet.yaml")
-    if platform == 'nanopore':
+    if platform == "nanopore":
         nanopore_sheet(input, "samplesheet.yaml")
-    if platform == 'iontorrent':
+    if platform == "iontorrent":
         iontorrent_sheet(input, "samplesheet.yaml")
-    
+
     samplesheet = os.getcwd() + "/samplesheet.yaml"
     return samplesheet

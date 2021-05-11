@@ -2,24 +2,23 @@
 #placeholder block
 """
 
-# * base imports
-import os
-import sys
 import argparse
-import pathlib
 import multiprocessing
+import os
+import pathlib
+import sys
+
 import snakemake
 import yaml
 
-yaml.warnings({'YAMLLoadWarning': False})
-
-# * relative imports
-from .version import __version__
 from .functions import MyHelpFormatter, color
-from .validatefasta import IsValidFasta
+from .runconfigs import WriteConfigs
 from .samplesheet import WriteSampleSheet
 from .userprofile import ReadConfig
-from .runconfigs import WriteConfigs
+from .validatefasta import IsValidFasta
+from .version import __version__
+
+yaml.warnings({"YAMLLoadWarning": False})
 
 
 def get_args(givenargs):
@@ -38,14 +37,14 @@ def get_args(givenargs):
         else:
             print(f'"{fname}" is not a file. Exiting...')
             sys.exit(-1)
-            
+
     def dir_path(arginput):
         if os.path.isdir(arginput):
             return arginput
         else:
-            print(f'\"{arginput}\" is not a directory. Exiting...')
+            print(f'"{arginput}" is not a directory. Exiting...')
             sys.exit(1)
-    
+
     def currentpath():
         return os.getcwd()
 
@@ -84,15 +83,15 @@ def get_args(givenargs):
         help="Used primer sequences in FASTA format",
         required=True,
     )
-    
+
     arg.add_argument(
         "--platform",
         default="nanopore",
         const="nanopore",
-        nargs='?',
-        choices=('nanopore', 'illumina', 'iontorrent'),
+        nargs="?",
+        choices=("nanopore", "illumina", "iontorrent"),
         help="Define the sequencing platform that was used to generate the dataset, either being 'nanopore', 'illumina' or 'iontorrent', see the docs for more info",
-        required=True
+        required=True,
     )
 
     arg.add_argument(
@@ -105,14 +104,14 @@ def get_args(givenargs):
         help="Define the amplicon-type, either being 'end-to-end' or 'end-to-mid', see the docs for more info",
         required=True,
     )
-    
+
     arg.add_argument(
         "--threads",
         "-t",
         default=min(multiprocessing.cpu_count(), 128),
         metavar="N",
         type=int,
-        help=f"Number of local threads that are available to use.\nDefault is the number of available threads in your system ({min(multiprocessing.cpu_count(), 128)})"
+        help=f"Number of local threads that are available to use.\nDefault is the number of available threads in your system ({min(multiprocessing.cpu_count(), 128)})",
     )
 
     arg.add_argument(
@@ -130,107 +129,131 @@ def get_args(givenargs):
         default=argparse.SUPPRESS,
         help="Show this help message and exit",
     )
-    
+
     arg.add_argument(
         "--dryrun",
-        action='store_true',
-        help="Run the workflow without actually doing anything"
+        action="store_true",
+        help="Run the workflow without actually doing anything",
     )
 
-    if len(givenargs)<1:
-        print(f"{arg.prog} was called but no arguments were given, please try again\n\tUse '{arg.prog} -h' to see the help document")
+    if len(givenargs) < 1:
+        print(
+            f"{arg.prog} was called but no arguments were given, please try again\n\tUse '{arg.prog} -h' to see the help document"
+        )
         sys.exit(1)
     else:
         flags = arg.parse_args(givenargs)
 
     return flags
 
+
 def CheckInputFiles(dir):
-    allowedextensions = ['.fastq', '.fq', '.fastq.gz', '.fq.gz']
+    allowedextensions = [".fastq", ".fq", ".fastq.gz", ".fq.gz"]
     foundfiles = []
-    
+
     for filenames in os.listdir(dir):
-        extensions = ''.join(pathlib.Path(filenames).suffixes)
+        extensions = "".join(pathlib.Path(filenames).suffixes)
         foundfiles.append(extensions)
-        
+
     if any(i in allowedextensions for i in foundfiles) is True:
         return True
     else:
         return False
 
+
 def main():
     flags = get_args(sys.argv[1:])
-    
+
     inpath = os.path.abspath(flags.input)
-    #refpath = os.path.abspath(flags.reference)
+    # refpath = os.path.abspath(flags.reference)
     if flags.primers != "NONE":
         primpath = os.path.abspath(flags.primers)
     else:
         primpath = "NONE"
     outpath = os.path.abspath(flags.output)
-    
+
     here = os.path.abspath(os.path.dirname(__file__))
-    
+
     Snakefile = os.path.join(here, "workflow", "workflow.smk")
-    
+
     ##@ check if the input directory contains valid files
     if CheckInputFiles(inpath) is False:
-        print(f'{color.RED + color.BOLD}\"{inpath}\" does not contain any valid FastQ files.{color.END}\nPlease check the input directory. Exiting...')
+        print(
+            f'{color.RED + color.BOLD}"{inpath}" does not contain any valid FastQ files.{color.END}\nPlease check the input directory. Exiting...'
+        )
         sys.exit(-1)
     else:
-        print(f'{color.GREEN}Valid input files were found in the input directory{color.END} ({inpath})')
-    
+        print(
+            f"{color.GREEN}Valid input files were found in the input directory{color.END} ({inpath})"
+        )
+
     ##> Check the default userprofile, make it if it doesn't exist
-    conf = ReadConfig(os.path.expanduser('~/.SARS2seq_defaultprofile.ini'))
-    
+    conf = ReadConfig(os.path.expanduser("~/.SARS2seq_defaultprofile.ini"))
+
     if IsValidFasta(primpath) is False:
-        print(f'{color.RED + color.BOLD}The given fasta with primer sequences contains illegal characters in its sequences.{color.END}\nPlease check the primer fasta and try again. Exiting...')
+        print(
+            f"{color.RED + color.BOLD}The given fasta with primer sequences contains illegal characters in its sequences.{color.END}\nPlease check the primer fasta and try again. Exiting..."
+        )
         sys.exit(1)
-    
+
     ##@ check if the output dir exists, create if not
     ##@ change the working directory
     if not os.path.exists(outpath):
         os.makedirs(outpath)
-    
-    #copy_tree(os.path.join(here, 'envs'), os.path.join(outpath, 'envs'))
-    
+
+    # copy_tree(os.path.join(here, 'envs'), os.path.join(outpath, 'envs'))
+
     if not os.getcwd() == outpath:
         os.chdir(outpath)
     workdir = outpath
-        
+
     samplesheet = WriteSampleSheet(inpath, flags.platform)
-    snakeparams, snakeconfig = WriteConfigs(conf, flags.threads, os.getcwd(), flags.platform, primpath, samplesheet, flags.amplicon_type, flags.dryrun)
-    
+    snakeparams, snakeconfig = WriteConfigs(
+        conf,
+        flags.threads,
+        os.getcwd(),
+        flags.platform,
+        primpath,
+        samplesheet,
+        flags.amplicon_type,
+        flags.dryrun,
+    )
+
     openedconfig = open(snakeconfig)
     parsedconfig = yaml.load(openedconfig, Loader=yaml.FullLoader)
-    
-    if conf['COMPUTING']['compmode'] == 'local':
-        snakemake.snakemake(Snakefile, 
-                            workdir=workdir, 
-                            cores=parsedconfig['cores'], 
-                            use_conda=parsedconfig['use-conda'],
-                            conda_frontend="mamba",
-                            jobname=parsedconfig['jobname'],
-                            latency_wait=parsedconfig['latency-wait'],
-                            dryrun=parsedconfig['dryrun'],
-                            configfiles=[snakeparams]
-                            )
-    if conf['COMPUTING']['compmode'] == 'grid':
-        snakemake.snakemake(Snakefile,
-                            workdir=workdir,
-                            cores=parsedconfig['cores'],
-                            nodes=parsedconfig['cores'],
-                            use_conda=parsedconfig['use-conda'],
-                            conda_frontend="mamba",
-                            jobname=parsedconfig['jobname'],
-                            latency_wait=parsedconfig['latency-wait'],
-                            drmaa=parsedconfig['drmaa'],
-                            drmaa_log_dir=parsedconfig['drmaa-log-dir'],
-                            dryrun=parsedconfig['dryrun'],
-                            configfiles=[snakeparams])
-    
-    if parsedconfig['dryrun'] == False:
-        snakemake.snakemake(Snakefile,
-                            workdir=workdir,
-                            report="results/snakemake_report.html",
-                            configfiles=[snakeparams])
+
+    if conf["COMPUTING"]["compmode"] == "local":
+        snakemake.snakemake(
+            Snakefile,
+            workdir=workdir,
+            cores=parsedconfig["cores"],
+            use_conda=parsedconfig["use-conda"],
+            conda_frontend="mamba",
+            jobname=parsedconfig["jobname"],
+            latency_wait=parsedconfig["latency-wait"],
+            dryrun=parsedconfig["dryrun"],
+            configfiles=[snakeparams],
+        )
+    if conf["COMPUTING"]["compmode"] == "grid":
+        snakemake.snakemake(
+            Snakefile,
+            workdir=workdir,
+            cores=parsedconfig["cores"],
+            nodes=parsedconfig["cores"],
+            use_conda=parsedconfig["use-conda"],
+            conda_frontend="mamba",
+            jobname=parsedconfig["jobname"],
+            latency_wait=parsedconfig["latency-wait"],
+            drmaa=parsedconfig["drmaa"],
+            drmaa_log_dir=parsedconfig["drmaa-log-dir"],
+            dryrun=parsedconfig["dryrun"],
+            configfiles=[snakeparams],
+        )
+
+    if parsedconfig["dryrun"] == False:
+        snakemake.snakemake(
+            Snakefile,
+            workdir=workdir,
+            report="results/snakemake_report.html",
+            configfiles=[snakeparams],
+        )

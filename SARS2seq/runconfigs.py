@@ -1,45 +1,48 @@
-import yaml
 import os
 import sys
 
+import yaml
+
+
 def SnakemakeConfig(conf, cores, dryrun):
     cores = cores - 2
-    compmode = conf['COMPUTING']['compmode']
-    
+    compmode = conf["COMPUTING"]["compmode"]
+
     if compmode == "local":
         config = {
             "cores": cores,
             "latency-wait": 60,
             "use-conda": True,
             "dryrun": dryrun,
-            "jobname": 'SARS2seq_{name}.jobid{jobid}'
+            "jobname": "SARS2seq_{name}.jobid{jobid}",
         }
-    
+
     if compmode == "grid":
-        queuename = conf['COMPUTING']['queuename']
+        queuename = conf["COMPUTING"]["queuename"]
         threads = "{threads}"
         config = {
             "cores": 300,
             "latency-wait": 60,
             "use-conda": True,
             "dryrun": dryrun,
-            "jobname": 'SARS2seq_{name}.jobid{jobid}',
-            "drmaa": f" -q {queuename} -n {threads} -R \"span[hosts=1]\"",
-            "drmaa-log-dir": "logs/drmaa"
+            "jobname": "SARS2seq_{name}.jobid{jobid}",
+            "drmaa": f' -q {queuename} -n {threads} -R "span[hosts=1]"',
+            "drmaa-log-dir": "logs/drmaa",
         }
-        
+
     return config
 
+
 def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
-    if conf['COMPUTING']['compmode'] == 'local':
+    if conf["COMPUTING"]["compmode"] == "local":
         threads_highcpu = int(cores - 2)
         threads_midcpu = int(cores / 2)
         threads_lowcpu = 1
-    if conf['COMPUTING']['compmode'] == 'grid':
+    if conf["COMPUTING"]["compmode"] == "grid":
         threads_highcpu = 12
         threads_midcpu = 6
         threads_lowcpu = 2
-    
+
     params = {
         "sample_sheet": samplesheet,
         "reference_file": "Built-in: MN908947.3",
@@ -53,7 +56,7 @@ def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
             "PrimerRemoval": threads_highcpu,
             "Consensus": threads_lowcpu,
             "Index": threads_lowcpu,
-            "Typing": threads_lowcpu
+            "Typing": threads_lowcpu,
         },
         "runparams": {
             "alignmentfilters": "-F 256 -F 512 -F 4 -F 2048",
@@ -63,26 +66,33 @@ def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
             "qc_window_illumina": 5,
             "qc_window_nanopore": 20,
             "qc_window_iontorrent": 15,
-            "qc_min_readlength": 100
-        }
+            "qc_min_readlength": 100,
+        },
     }
 
     return params
 
+
 def WriteConfigs(conf, cores, cwd, platform, prims, samplesheet, amplicon_type, dryrun):
     if not os.path.exists(cwd + "/config"):
         os.makedirs(cwd + "/config")
-        
+
     os.chdir(cwd + "/config")
-    
+
     with open("config.yaml", "w") as ConfigOut:
-        yaml.dump(SnakemakeConfig(conf, cores, dryrun), ConfigOut, default_flow_style=False)
+        yaml.dump(
+            SnakemakeConfig(conf, cores, dryrun), ConfigOut, default_flow_style=False
+        )
     ConfigOut.close()
-    
+
     with open("params.yaml", "w") as ParamsOut:
-        yaml.dump(SnakemakeParams(conf, cores, prims, platform, samplesheet, amplicon_type), ParamsOut, default_flow_style=False)
+        yaml.dump(
+            SnakemakeParams(conf, cores, prims, platform, samplesheet, amplicon_type),
+            ParamsOut,
+            default_flow_style=False,
+        )
     ParamsOut.close()
-    
-    parameters = os.getcwd() + '/params.yaml'
-    snakeconfig = os.getcwd() + '/config.yaml'
+
+    parameters = os.getcwd() + "/params.yaml"
+    snakeconfig = os.getcwd() + "/config.yaml"
     return parameters, snakeconfig
