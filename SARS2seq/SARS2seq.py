@@ -1,3 +1,6 @@
+#pylint: disable=C0103
+
+
 """
 #placeholder block
 """
@@ -20,11 +23,12 @@ from .version import __version__
 
 yaml.warnings({"YAMLLoadWarning": False})
 
-
 def get_args(givenargs):
     """
     Parse the commandline args
     """
+    #pylint: disable=C0301
+
 
     def fasta_input(choices, fname):
         if fname == "NONE":
