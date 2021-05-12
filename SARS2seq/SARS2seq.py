@@ -36,18 +36,16 @@ def get_args(givenargs):
         if os.path.isfile(fname):
             ext = "".join(pathlib.Path(fname).suffixes)
             if ext not in choices:
-                arg.error("Input file doesn't end with one of {}".format(choices))
+                raise argparse.ArgumentTypeError(f"Input file doesn't end with one of {choices}")
             return fname
-        else:
-            print(f'"{fname}" is not a file. Exiting...')
-            sys.exit(-1)
+        print(f'"{fname}" is not a file. Exiting...')
+        sys.exit(-1)
 
     def dir_path(arginput):
         if os.path.isdir(arginput):
             return arginput
-        else:
-            print(f'"{arginput}" is not a directory. Exiting...')
-            sys.exit(1)
+        print(f'"{arginput}" is not a directory. Exiting...')
+        sys.exit(1)
 
     def currentpath():
         return os.getcwd()
@@ -151,21 +149,30 @@ def get_args(givenargs):
     return flags
 
 
-def CheckInputFiles(dir):
+def CheckInputFiles(indir):
+    """
+    Check if the input files are valid fastq files
+    """
     allowedextensions = [".fastq", ".fq", ".fastq.gz", ".fq.gz"]
     foundfiles = []
 
-    for filenames in os.listdir(dir):
+    for filenames in os.listdir(indir):
         extensions = "".join(pathlib.Path(filenames).suffixes)
         foundfiles.append(extensions)
 
-    if any(i in allowedextensions for i in foundfiles) is True:
-        return True
-    else:
-        return False
+
+    return bool(any(i in allowedextensions for i in foundfiles))
 
 
 def main():
+    """
+    SARS2seq starting point
+    --> Fetch and parse arguments
+    --> check validity
+    --> Read (or write, if necessary) the user-config files
+    --> Change working directories and make necessary local files for snakemake
+    --> Run snakemake with appropriate settings
+    """
     flags = get_args(sys.argv[1:])
 
     inpath = os.path.abspath(flags.input)
@@ -180,23 +187,34 @@ def main():
 
     Snakefile = os.path.join(here, "workflow", "workflow.smk")
 
+    ##> Check the default userprofile, make it if it doesn't exist
+    conf = ReadConfig(os.path.expanduser("~/.SARS2seq_defaultprofile.ini"))
+    
+    
     ##@ check if the input directory contains valid files
     if CheckInputFiles(inpath) is False:
         print(
-            f'{color.RED + color.BOLD}"{inpath}" does not contain any valid FastQ files.{color.END}\nPlease check the input directory. Exiting...'
+            f'''
+{color.RED + color.BOLD}"{inpath}" does not contain any valid FastQ files.{color.END}
+Please check the input directory. Exiting...
+            '''
         )
         sys.exit(-1)
     else:
         print(
-            f"{color.GREEN}Valid input files were found in the input directory{color.END} ({inpath})"
+            f"""
+{color.GREEN}Valid input files were found in the input directory{color.END} ('{inpath}')
+            """
         )
-
-    ##> Check the default userprofile, make it if it doesn't exist
-    conf = ReadConfig(os.path.expanduser("~/.SARS2seq_defaultprofile.ini"))
 
     if IsValidFasta(primpath) is False:
         print(
-            f"{color.RED + color.BOLD}The given fasta with primer sequences contains illegal characters in its sequences.{color.END}\nPlease check the primer fasta and try again. Exiting..."
+            f"""
+{color.RED + color.BOLD}
+The given fasta with primer sequences contains illegal characters in its sequences.
+{color.END}
+Please check the primer fasta and try again. Exiting...
+            """
         )
         sys.exit(1)
 
@@ -224,7 +242,7 @@ def main():
     )
 
     openedconfig = open(snakeconfig)
-    parsedconfig = yaml.load(openedconfig, Loader=yaml.FullLoader)
+    parsedconfig = yaml.safe_load(openedconfig)
 
     if conf["COMPUTING"]["compmode"] == "local":
         snakemake.snakemake(
@@ -254,7 +272,7 @@ def main():
             configfiles=[snakeparams],
         )
 
-    if parsedconfig["dryrun"] == False:
+    if parsedconfig["dryrun"] is False:
         snakemake.snakemake(
             Snakefile,
             workdir=workdir,

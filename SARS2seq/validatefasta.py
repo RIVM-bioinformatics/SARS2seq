@@ -1,3 +1,9 @@
+#pylint: disable=C0103
+
+"""
+Basic functions to see if a fasta is valid
+"""
+
 import re
 
 from Bio import SeqIO
@@ -7,10 +13,9 @@ def ContainsSpecials(seq):
 
     chars = re.compile("[^actgumrwsykvhdbnACTGUMRWSYKVHDBN-]")
 
-    if chars.search(seq) == None:
+    if chars.search(seq) is None:
         return False
-    else:
-        return True
+    return True
 
 
 def IsValidFasta(inputfile):
@@ -22,5 +27,4 @@ def IsValidFasta(inputfile):
 
     if any(results) is True:
         return False
-    else:
-        return True
+    return True

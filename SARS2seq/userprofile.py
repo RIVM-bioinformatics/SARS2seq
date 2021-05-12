@@ -1,8 +1,14 @@
+#pylint: disable=C0103
+
+"""
+Read or write the configuration file for SARS2seq.
+This is so a user doesn't have to give this information manually on every run
+"""
 import configparser
 import os
 import sys
 
-import gnureadline as readline
+import readline
 
 from .functions import color, tabCompleter
 
@@ -10,15 +16,13 @@ from .functions import color, tabCompleter
 def FileExists(file):
     if os.path.isfile(file):
         return True
-    if not os.path.isfile(file):
-        return False
+    return False
 
 
 def FileIsPopulated(file):
-    if os.stat(file).st_size == 0:
+    if not os.stat(file).st_size >= 1:
         return False
-    if os.stat(file).st_size >= 1:
-        return True
+    return True
 
 
 def AskPrompts(intro, prompt, options, fixedchoices=False):
@@ -53,6 +57,7 @@ def AskPrompts(intro, prompt, options, fixedchoices=False):
 
 
 def BuildConfig(file):
+    #pylint: disable=C0301
     if os.path.exists(file):
         os.remove(file)
 
@@ -60,7 +65,11 @@ def BuildConfig(file):
 
     conf_object["COMPUTING"] = {
         "compmode": AskPrompts(
-            f"""SARS2seq can run in two computing-modes. {color.YELLOW + color.UNDERLINE}local{color.END} or {color.YELLOW + color.UNDERLINE}HPC/Grid{color.END}\nPlease specify the computing-mode that you wish to use for SARS2seq.""",
+            f"""
+SARS2seq can run in two computing-modes.
+{color.YELLOW + color.UNDERLINE}local{color.END} or {color.YELLOW + color.UNDERLINE}HPC/Grid{color.END}
+Please specify the computing-mode that you wish to use for SARS2seq.
+            """,
             f"""Do you wish to run SARS2seq in {color.YELLOW}local{color.END} or {color.YELLOW}grid{color.END} mode? [local/grid] """,
             ["local", "grid"],
             fixedchoices=True,

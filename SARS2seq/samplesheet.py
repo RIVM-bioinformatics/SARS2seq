@@ -1,3 +1,4 @@
+#pylint: disable=C0103
 """
 Write the samplesheets
 """
@@ -9,7 +10,7 @@ import yaml
 
 
 def illumina_sheet(inputdir, sheet):
-    illuminapattern = re.compile("(.*)(_|\.)R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
+    illuminapattern = re.compile(r"(.*)(_|\.)R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
     samples = {}
     for dirname, subdir, filename in os.walk(inputdir):
         for files in filename:
@@ -21,11 +22,10 @@ def illumina_sheet(inputdir, sheet):
     with open(sheet, "w") as samplesheet:
         yaml.dump(samples, samplesheet, default_flow_style=False)
     samplesheet.close()
-    pass
 
 
 def nanopore_sheet(inputdir, sheet):
-    nanoporepattern = re.compile("(.*)\.f(ast)?q(\.gz)?")
+    nanoporepattern = re.compile(r"(.*)\.f(ast)?q(\.gz)?")
     samples = {}
     for dirname, subdir, filename in os.walk(inputdir):
         for files in filename:
@@ -36,11 +36,10 @@ def nanopore_sheet(inputdir, sheet):
     with open(sheet, "w") as samplesheet:
         yaml.dump(samples, samplesheet, default_flow_style=False)
     samplesheet.close()
-    pass
 
 
 def iontorrent_sheet(inputdir, sheet):
-    nanoporepattern = re.compile("(.*)\.f(ast)?q(\.gz)?")
+    nanoporepattern = re.compile(r"(.*)\.f(ast)?q(\.gz)?")
     samples = {}
     for dirname, subdir, filename in os.walk(inputdir):
         for files in filename:
@@ -51,16 +50,15 @@ def iontorrent_sheet(inputdir, sheet):
     with open(sheet, "w") as samplesheet:
         yaml.dump(samples, samplesheet, default_flow_style=False)
     samplesheet.close()
-    pass
 
 
-def WriteSampleSheet(input, platform):
+def WriteSampleSheet(inputdir, platform):
     if platform == "illumina":
-        illumina_sheet(input, "samplesheet.yaml")
+        illumina_sheet(inputdir, "samplesheet.yaml")
     if platform == "nanopore":
-        nanopore_sheet(input, "samplesheet.yaml")
+        nanopore_sheet(inputdir, "samplesheet.yaml")
     if platform == "iontorrent":
-        iontorrent_sheet(input, "samplesheet.yaml")
+        iontorrent_sheet(inputdir, "samplesheet.yaml")
 
     samplesheet = os.getcwd() + "/samplesheet.yaml"
     return samplesheet

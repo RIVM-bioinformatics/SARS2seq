@@ -1,5 +1,10 @@
+#pylint: disable=C0103
+
+"""
+Construct and write configuration files for SnakeMake
+"""
+
 import os
-import sys
 
 import yaml
 
