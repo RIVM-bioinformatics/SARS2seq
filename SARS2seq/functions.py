@@ -1,4 +1,4 @@
-#pylint: disable=C0103.C0301
+# pylint: disable=C0103.C0301
 
 """
 Basic functions for various uses throughout SARS2seq
@@ -35,10 +35,12 @@ class MyHelpFormatter(argparse.RawTextHelpFormatter):
             help_text += " (default: " + str(action.default) + ")"
         return help_text
 
+
 class color:
     """
     define basic colors to use in the terminal
     """
+
     PURPLE = "\033[95m"
     CYAN = "\033[96m"
     DARKCYAN = "\033[36m"
@@ -57,7 +59,7 @@ class color:
 #! use the gnureadline module instead of readline module
 ##! the 'normal' readline module causes a bug with memory pointers
 ##! --> https://stackoverflow.com/questions/43013060/python-3-6-1-crashed-after-i-installed-readline-module
-class tabCompleter():
+class tabCompleter:
     """
     A tab completer that can either complete from
     the filesystem or from a list.
@@ -99,7 +101,6 @@ class tabCompleter():
             if not line:
                 return [c + " " for c in ll][state]
 
-            else:
-                return [c + " " for c in ll if c.startswith(line)][state]
+            return [c + " " for c in ll if c.startswith(line)][state]
 
         self.listCompleter = listCompleter

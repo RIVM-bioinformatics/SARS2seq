@@ -1,4 +1,4 @@
-#pylint: disable=C0103
+# pylint: disable=C0103
 
 
 """
@@ -23,12 +23,12 @@ from .version import __version__
 
 yaml.warnings({"YAMLLoadWarning": False})
 
+
 def get_args(givenargs):
     """
     Parse the commandline args
     """
-    #pylint: disable=C0301
-
+    # pylint: disable=C0301
 
     def fasta_input(choices, fname):
         if fname == "NONE":
@@ -36,7 +36,9 @@ def get_args(givenargs):
         if os.path.isfile(fname):
             ext = "".join(pathlib.Path(fname).suffixes)
             if ext not in choices:
-                raise argparse.ArgumentTypeError(f"Input file doesn't end with one of {choices}")
+                raise argparse.ArgumentTypeError(
+                    f"Input file doesn't end with one of {choices}"
+                )
             return fname
         print(f'"{fname}" is not a file. Exiting...')
         sys.exit(-1)
@@ -160,7 +162,6 @@ def CheckInputFiles(indir):
         extensions = "".join(pathlib.Path(filenames).suffixes)
         foundfiles.append(extensions)
 
-
     return bool(any(i in allowedextensions for i in foundfiles))
 
 
@@ -189,15 +190,14 @@ def main():
 
     ##> Check the default userprofile, make it if it doesn't exist
     conf = ReadConfig(os.path.expanduser("~/.SARS2seq_defaultprofile.ini"))
-    
-    
+
     ##@ check if the input directory contains valid files
     if CheckInputFiles(inpath) is False:
         print(
-            f'''
+            f"""
 {color.RED + color.BOLD}"{inpath}" does not contain any valid FastQ files.{color.END}
 Please check the input directory. Exiting...
-            '''
+            """
         )
         sys.exit(-1)
     else:

@@ -1,4 +1,4 @@
-#pylint: disable=C0103
+# pylint: disable=C0103
 
 """
 Read or write the configuration file for SARS2seq.
@@ -57,7 +57,7 @@ def AskPrompts(intro, prompt, options, fixedchoices=False):
 
 
 def BuildConfig(file):
-    #pylint: disable=C0301
+    # pylint: disable=C0301
     if os.path.exists(file):
         os.remove(file)
 

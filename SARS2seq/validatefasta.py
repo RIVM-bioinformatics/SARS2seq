@@ -1,4 +1,4 @@
-#pylint: disable=C0103
+# pylint: disable=C0103
 
 """
 Basic functions to see if a fasta is valid
