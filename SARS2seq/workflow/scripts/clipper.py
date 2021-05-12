@@ -1,5 +1,6 @@
-import pysam
 import argparse
+
+import pysam
 
 arg = argparse.ArgumentParser()
 
@@ -50,7 +51,7 @@ with flags.output as fileout:
 
         if len(trimmed_seq) == 0:
             continue
-        
+
         fileout.write(
             "@"
             + str(read.query_name)

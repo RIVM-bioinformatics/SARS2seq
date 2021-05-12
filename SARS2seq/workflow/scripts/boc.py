@@ -1,6 +1,7 @@
-from Bio import SeqIO
-import pandas as pd
 import sys
+
+import pandas as pd
+from Bio import SeqIO
 
 ref, samplename, coverages, output = sys.argv[1:]
 
