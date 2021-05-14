@@ -455,10 +455,6 @@ if config["platform"] == "iontorrent":
             samtools index {output.bam} >> {log} 2>&1
             """
 
-#TODO: Add one of the following lines to vcf headers (see https://samtools.github.io/hts-specs/VCFv4.2.pdf chapter 1.2.7): 
-    ##contig=<ID=MN908947.3>
-    ##contig=<ID=MN908947.3,length=29903>
-
 rule Consensus:
     input: 
         bam = rules.Alignment.output.bam,
@@ -539,6 +535,7 @@ rule process_maskings_vcf:
         f"{conda_envs}Mutations.yaml"
     log:
         f"{logdir}process_maskings_vcf.log"
+    threads: 1
     shell: 
         """
         bgzip -c {input} > {output.vcf_gz} 2>> {log}
@@ -705,6 +702,7 @@ rule Catch_typing_versions:
     conda:
         f"{conda_envs}Typing.yaml"
     threads: 1
+    shadow: "shallow"
     shell:
         """
         pangolin --update
@@ -759,41 +757,69 @@ rule combine_typing_results:
         cat {input} >> {output}
         """
 
-for x in mincoverages:
-    for o in orfs:
-        rule:
-            name: f"Extract_AA_orf-{o}_cov_{x}"
-            input:
-                fasta = f"{datadir + cons + seqs}" + "{sample}" + f"_cov_ge_{x}.fa",
-                gff = rules.Consensus.output.gff
-            output: f"{datadir + cons + amino + o}/" + "{sample}_" + f"{x}.fa"
-            conda:
-                f"{conda_envs}Consensus.yaml"
-            params:
-                c = x,
-                orf = o,
-                outdir = f"{datadir + cons + amino}",
-                script = srcdir('scripts/AA_extract.py')
-            threads: 1
-            shell:
-                """
-                python {params.script} {input.fasta} {input.gff} {params.orf} {wildcards.sample} {params.c} {params.outdir}
-                """
+rule Extract_AA:
+    input:
+        fasta = f"{datadir + cons + seqs}" + "{sample}_cov_ge_{cov}.fa",
+        gff = rules.Consensus.output.gff
+    output: 
+        f"{datadir + cons + amino}" + "orf1a/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "orf1b/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "S/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF3a/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "E/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "M/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF6/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF7a/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF8/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "N/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF10/{sample}_{cov}.fa"
+    conda:
+        f"{conda_envs}Consensus.yaml"
+    params:
+        outdir = f"{datadir + cons + amino}",
+        script = srcdir('scripts/AA_extract.py')
+    threads: 1
+    shell:
+        """
+        python {params.script} {input.fasta} {input.gff} {wildcards.sample} {wildcards.cov} {params.outdir}
+        """
 
-for x in mincoverages:
-    for o in orfs:
-        rule:
-            name: f"Concat_AminoAcids_orf-{o}_cov_{x}"
-            input:
-                expand("{p}/{sample}_{cov}.fa",
-                    p = f"{datadir + cons + amino + o}",
-                    sample = SAMPLES,
-                    cov = x)
-            output: f"{res + amino}coverage_{x}/concat_ORF-{o}.fa"
-            shell:
-                """
-                cat {input} >> {output}
-                """
+mincoverages = [1,5,10,50,100]
+
+for o in orfs:
+    rule:
+        name: f"Concat_AminoAcids_orf-{o}"
+        input:
+            cov1 = expand("{p}/{sample}_1.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES),
+            cov5 = expand("{p}/{sample}_5.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES),
+            cov10 = expand("{p}/{sample}_10.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES),
+            cov50 = expand("{p}/{sample}_5.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES),
+            cov100 = expand("{p}/{sample}_100.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES)
+        output: 
+            cov1 = f"{res + amino}coverage_1/concat_ORF-{o}.fa",
+            cov5 = f"{res + amino}coverage_5/concat_ORF-{o}.fa",
+            cov10 = f"{res + amino}coverage_10/concat_ORF-{o}.fa",
+            cov50 = f"{res + amino}coverage_50/concat_ORF-{o}.fa",
+            cov100 = f"{res + amino}coverage_100/concat_ORF-{o}.fa"
+        shell:
+            """
+            cat {input.cov1} >> {output.cov1}
+            cat {input.cov5} >> {output.cov5}
+            cat {input.cov10} >> {output.cov10}
+            cat {input.cov50} >> {output.cov50}
+            cat {input.cov100} >> {output.cov100}
+
+            """
 
 
 onsuccess:
