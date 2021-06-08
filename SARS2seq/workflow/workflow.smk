@@ -455,10 +455,6 @@ if config["platform"] == "iontorrent":
             samtools index {output.bam} >> {log} 2>&1
             """
 
-#TODO: Add one of the following lines to vcf headers (see https://samtools.github.io/hts-specs/VCFv4.2.pdf chapter 1.2.7): 
-    ##contig=<ID=MN908947.3>
-    ##contig=<ID=MN908947.3,length=29903>
-
 rule Consensus:
     input: 
         bam = rules.Alignment.output.bam,
@@ -501,18 +497,37 @@ rule Consensus:
         --noambiguity --threads {threads}
         """
 
-for x in mincoverages:
-    rule:
-        name: f"concat_seq_cov_{x}"
-        input: 
-            expand( "{p}{sample}_cov_ge_" + f"{x}.fa",
+rule Concat_Seqs:
+    input: 
+        cov1 =  expand( "{p}{sample}_cov_ge_1.fa",
                     p = f"{datadir + cons + seqs}",
-                    sample = SAMPLES)
-        output: f"{res + seqs}" + "concat_cov_ge_" + f"{x}.fasta"
-        shell:
-            """
-            cat {input} >> {output}
-            """
+                    sample = SAMPLES),
+        cov5 =  expand( "{p}{sample}_cov_ge_5.fa",
+                    p = f"{datadir + cons + seqs}",
+                    sample = SAMPLES),
+        cov10 = expand( "{p}{sample}_cov_ge_10.fa",
+                    p = f"{datadir + cons + seqs}",
+                    sample = SAMPLES),
+        cov50 = expand( "{p}{sample}_cov_ge_50.fa",
+                    p = f"{datadir + cons + seqs}",
+                    sample = SAMPLES),
+        cov100 =expand( "{p}{sample}_cov_ge_100.fa",
+                    p = f"{datadir + cons + seqs}",
+                    sample = SAMPLES),
+    output: 
+        cov1 = f"{res + seqs}" + "concat_cov_ge_1.fasta",
+        cov5 = f"{res + seqs}" + "concat_cov_ge_5.fasta",
+        cov10 = f"{res + seqs}" + "concat_cov_ge_10.fasta",
+        cov50 = f"{res + seqs}" + "concat_cov_ge_50.fasta",
+        cov100 = f"{res + seqs}" + "concat_cov_ge_100.fasta",
+    shell:
+        """
+        cat {input.cov1} >> {output.cov1}
+        cat {input.cov5} >> {output.cov5}
+        cat {input.cov10} >> {output.cov10}
+        cat {input.cov50} >> {output.cov50}
+        cat {input.cov100} >> {output.cov100}
+        """
 
 rule get_site_maskings:
     output: temp(f"{datadir + ann}" + "problematic_sites.vcf")
@@ -539,6 +554,7 @@ rule process_maskings_vcf:
         f"{conda_envs}Mutations.yaml"
     log:
         f"{logdir}process_maskings_vcf.log"
+    threads: 1
     shell: 
         """
         bgzip -c {input} > {output.vcf_gz} 2>> {log}
@@ -575,35 +591,77 @@ rule verify_annotation:
     output:
         temp(touch(f"{res}" + "annotation_check.txt"))
 
-for x in mincoverages:
-    rule:
-        name: f"vcf_to_tsv_{x}"
-        input: f"{datadir + aln + vf}" + "{sample}" + f"_cov_ge_{x}.vcf",
-        output: temp(f"{datadir + aln + vf}" + "{sample}" + f"_cov_ge_{x}.tsv"),
-        conda: f"{conda_envs}Mutations.yaml"
-        log:
-            f"{logdir}" + "vcf_to_tsv_{sample}_cov_ge_" + f"{x}.log"
-        shell:
-            """
-            bcftools query {input} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output} 2>> {log}
-            """
+rule VCF_to_TSV:
+    input: 
+        cov1 = f"{datadir + aln + vf}" + "{sample}_cov_ge_1.vcf",
+        cov5 = f"{datadir + aln + vf}" + "{sample}_cov_ge_5.vcf",
+        cov10 = f"{datadir + aln + vf}" + "{sample}_cov_ge_10.vcf",
+        cov50 = f"{datadir + aln + vf}" + "{sample}_cov_ge_50.vcf",
+        cov100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf",
+    output: 
+        cov1 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_1.tsv"),
+        cov5 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_5.tsv"),
+        cov10 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_10.tsv"),
+        cov50 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_50.tsv"),
+        cov100 = temp(f"{datadir + aln + vf}" + "{sample}_cov_ge_100.tsv"),
+    conda: f"{conda_envs}Mutations.yaml"
+    log:
+        f"{logdir}" + "vcf_to_tsv_{sample}.log"
+    shell:
+        """
+        bcftools query {input.cov1} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.cov1} 2>> {log}
+        bcftools query {input.cov5} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.cov5} 2>> {log}
+        bcftools query {input.cov10} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.cov10} 2>> {log}
+        bcftools query {input.cov50} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.cov50} 2>> {log}
+        bcftools query {input.cov100} -f '{wildcards.sample}\t%CHROM\t%POS\t%REF\t%ALT\t%DP\n' -e 'ALT="N"' > {output.cov100} 2>> {log}
+        """
 
-for x in mincoverages:
-    rule:
-        name: f"concat_tsv_coverage_{x}"
-        input:
-            expand(
-                "{p}{sample}_cov_ge_" + f"{x}.tsv",
-                p = datadir + aln + vf,
-                sample = SAMPLES
-                )
-        output:
-            f"{res + muts}concat_mutations_cov_ge_{x}.tsv",
-        log:
-            f"{logdir}concat_tsv{x}.log"
-        run:
-            shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output} 2> {log}")
-            shell("cat {input} >> {output} 2>> {log}")
+rule Concat_TSV_coverages:
+    input:
+        cov1 = expand(
+            "{p}{sample}_cov_ge_1.tsv",
+            p = datadir + aln + vf,
+            sample = SAMPLES
+            ),
+        cov5 = expand(
+            "{p}{sample}_cov_ge_5.tsv",
+            p = datadir + aln + vf,
+            sample = SAMPLES
+            ),
+        cov10 = expand(
+            "{p}{sample}_cov_ge_10.tsv",
+            p = datadir + aln + vf,
+            sample = SAMPLES
+            ),
+        cov50 = expand(
+            "{p}{sample}_cov_ge_50.tsv",
+            p = datadir + aln + vf,
+            sample = SAMPLES
+            ),
+        cov100 = expand(
+            "{p}{sample}_cov_ge_100.tsv",
+            p = datadir + aln + vf,
+            sample = SAMPLES
+            )
+    output:
+        cov1 = f"{res + muts}concat_mutations_cov_ge_1.tsv",
+        cov5 = f"{res + muts}concat_mutations_cov_ge_5.tsv",
+        cov10 = f"{res + muts}concat_mutations_cov_ge_10.tsv",
+        cov50 = f"{res + muts}concat_mutations_cov_ge_50.tsv",
+        cov100 = f"{res + muts}concat_mutations_cov_ge_100.tsv",
+    log:
+        f"{logdir}concat_tsv.log"
+    run:
+        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov1} 2> {log}")
+        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov5} 2> {log}")
+        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov10} 2> {log}")
+        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov50} 2> {log}")
+        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov100} 2> {log}")
+        shell("cat {input.cov1} >> {output.cov1} 2>> {log}")
+        shell("cat {input.cov5} >> {output.cov5} 2>> {log}")
+        shell("cat {input.cov10} >> {output.cov10} 2>> {log}")
+        shell("cat {input.cov50} >> {output.cov50} 2>> {log}")
+        shell("cat {input.cov100} >> {output.cov100} 2>> {log}")
 
 
 rule Get_Breadth_of_coverage:
@@ -705,6 +763,7 @@ rule Catch_typing_versions:
     conda:
         f"{conda_envs}Typing.yaml"
     threads: 1
+    shadow: "shallow"
     shell:
         """
         pangolin --update
@@ -759,42 +818,70 @@ rule combine_typing_results:
         cat {input} >> {output}
         """
 
-for x in mincoverages:
-    for o in orfs:
-        rule:
-            name: f"Extract_AA_orf-{o}_cov_{x}"
-            input:
-                fasta = f"{datadir + cons + seqs}" + "{sample}" + f"_cov_ge_{x}.fa",
-                gff = rules.Consensus.output.gff
-            output: f"{datadir + cons + amino + o}/" + "{sample}_" + f"{x}.fa"
-            conda:
-                f"{conda_envs}Consensus.yaml"
-            params:
-                c = x,
-                orf = o,
-                outdir = f"{datadir + cons + amino}",
-                script = srcdir('scripts/AA_extract.py')
-            threads: 1
-            shell:
-                """
-                python {params.script} {input.fasta} {input.gff} {params.orf} {wildcards.sample} {params.c} {params.outdir}
-                """
+rule Extract_AA:
+    input:
+        fasta = f"{datadir + cons + seqs}" + "{sample}_cov_ge_{cov}.fa",
+        gff = rules.Consensus.output.gff
+    output: 
+        f"{datadir + cons + amino}" + "orf1a/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "orf1b/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "S/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF3a/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "E/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "M/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF6/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF7a/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF8/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "N/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF10/{sample}_{cov}.fa"
+    conda:
+        f"{conda_envs}Consensus.yaml"
+    params:
+        outdir = f"{datadir + cons + amino}",
+        script = srcdir('scripts/AA_extract.py')
+    threads: 1
+    shell:
+        """
+        python {params.script} {input.fasta} {input.gff} {wildcards.sample} {wildcards.cov} {params.outdir}
+        """
 
-for x in mincoverages:
-    for o in orfs:
-        rule:
-            name: f"Concat_AminoAcids_orf-{o}_cov_{x}"
-            input:
-                expand("{p}/{sample}_{cov}.fa",
-                    p = f"{datadir + cons + amino + o}",
-                    sample = SAMPLES,
-                    cov = x)
-            output: f"{res + amino}coverage_{x}/concat_ORF-{o}.fa"
-            shell:
-                """
-                cat {input} >> {output}
-                """
+mincoverages = [1,5,10,50,100]
+orfs = ["orf1a","orf1b","S","ORF3a","E","M","ORF6","ORF7a","ORF8","N","ORF10"]
 
+for o in orfs:
+    rule:
+        name: f"Concat_AminoAcids_orf-{o}"
+        input:
+            cov1 = expand("{p}/{sample}_1.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES),
+            cov5 = expand("{p}/{sample}_5.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES),
+            cov10 = expand("{p}/{sample}_10.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES),
+            cov50 = expand("{p}/{sample}_5.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES),
+            cov100 = expand("{p}/{sample}_100.fa",
+                p = f"{datadir + cons + amino + o}",
+                sample = SAMPLES)
+        output: 
+            cov1 = f"{res + amino}coverage_1/concat_ORF-{o}.fa",
+            cov5 = f"{res + amino}coverage_5/concat_ORF-{o}.fa",
+            cov10 = f"{res + amino}coverage_10/concat_ORF-{o}.fa",
+            cov50 = f"{res + amino}coverage_50/concat_ORF-{o}.fa",
+            cov100 = f"{res + amino}coverage_100/concat_ORF-{o}.fa"
+        shell:
+            """
+            cat {input.cov1} >> {output.cov1}
+            cat {input.cov5} >> {output.cov5}
+            cat {input.cov10} >> {output.cov10}
+            cat {input.cov50} >> {output.cov50}
+            cat {input.cov100} >> {output.cov100}
+
+            """
 
 onsuccess:
     print("""
