@@ -2,12 +2,16 @@ name: Typing
 channels:
   - bioconda
   - conda-forge
-  - epi2melabs
   - intel
   - anaconda
   - defaults
 dependencies:
   - python=3.7
   - pangolin>=2.4.2
-  - nextclade-cli>=0.13.0
+  - nextclade_js>=0.13.0
   - pandas>=1.2.3
+  - usher
+  - pip
+  - pip:
+    - git+https://github.com/cov-lineages/constellations.git
+    - git+https://github.com/cov-lineages/scorpio.git
