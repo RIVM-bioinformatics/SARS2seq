@@ -506,7 +506,7 @@ rule Consensus:
         --variants {params.vcfdir} \
         --output-gff {params.gffdir} \
         --depth-of-coverage {output.cov} \
-        --noambiguity --threads {threads}
+        --threads {threads}
         """
 
 rule Concat_Seqs:
