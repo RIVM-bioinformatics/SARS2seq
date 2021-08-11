@@ -817,7 +817,7 @@ rule Catch_typing_versions:
     shadow: "shallow"
     shell:
         """
-        pangolin --update
+        pangolin --update-data
         pangolin -v > {output.pangolin}
         nextclade --version > {output.nextclade}
         """
@@ -865,7 +865,7 @@ rule combine_typing_results:
     output: f"{res}Typing_results.tsv"
     shell:
         """
-        echo -e "Sample_name\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tPangolin status\tNextClade QC" > {output}
+        echo -e "Sample_name\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tScorpio Call\tPangolin status\tNextClade QC" > {output}
         cat {input} >> {output}
         """
 

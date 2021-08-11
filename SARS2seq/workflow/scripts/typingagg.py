@@ -18,5 +18,5 @@ with open(pn_vs, "r") as pf:
 
 with open(outfile, "w") as out:
     out.write(
-        f"{samplename}\t{now}\t{pn_version}\t{nx_version}\t{pangolin.get('pangoLEARN_version')[0]}\t{pangolin.get('lineage')[0]}\t{nextclade.get('clade')[0]}\t{pangolin.get('status')[0]}\t{nextclade.get('qc.overallStatus')[0]}\n"
+        f"{samplename}\t{now}\t{pn_version}\t{nx_version}\t{pangolin.get('pangoLEARN_version')[0]}\t{pangolin.get('lineage')[0]}\t{nextclade.get('clade')[0]}\t{pangolin.get('scorpio_call')[0]}\t{pangolin.get('status')[0]}\t{nextclade.get('qc.overallStatus')[0]}\n"
     )
