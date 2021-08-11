@@ -7,11 +7,10 @@ channels:
   - defaults
 dependencies:
   - python=3.7
-  - pangolin>=2.4.2
-  - nextclade_js>=0.13.0
+  - pangolin>=3.0
+  - nextclade_js>=0.14.0
   - pandas>=1.2.3
   - usher
   - pip
   - pip:
-    - git+https://github.com/cov-lineages/constellations.git
-    - git+https://github.com/cov-lineages/scorpio.git
+    - git+https://github.com/cov-lineages/pango-designation.git
