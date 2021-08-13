@@ -814,7 +814,7 @@ rule Catch_typing_versions:
     conda:
         f"{conda_envs}Typing.yaml"
     threads: 1
-    shadow: "shallow"
+    shadow: "minimal"
     shell:
         """
         pangolin --update-data
@@ -823,49 +823,82 @@ rule Catch_typing_versions:
         """
 
 rule Typing:
-    input: rules.Consensus.output.cons_1
+    input: 
+        fasta = f"{datadir + cons + seqs}" + "{sample}_cov_ge_{cov}.fa",
+        ref = rules.Prepare_ref_and_primers.output.ref,
+        gff = f"{datadir + cons + features}" + "{sample}_cov_ge_{cov}.gff",
+        qc = srcdir("files/nx_qc.json"),
+        tree = srcdir("files/nx_tree.json")
     output: 
-        pango = temp(f"{datadir + cons + tbl}" + "{sample}_pangolin.csv"),
-        nextc = temp(f"{datadir + cons + tbl}" + "{sample}_nextclade.csv")
+        pango = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_pangolin.csv"),
+        nextc = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv")
     conda:
         f"{conda_envs}Typing.yaml"
     threads: config['threads']['Typing']
     log:
-        f"{logdir}" + "Typing_{sample}.log"
+        f"{logdir}" + "Typing_{sample}_{cov}.log"
     params:
         pango_dir = f"{datadir + cons + tbl}",
     shadow: "minimal"
     shell:
         """
-        nextclade -i {input} -c {output.nextc} -j {threads} > {log} 2>&1
-        pangolin {input} -o {params.pango_dir} --outfile {wildcards.sample}_pangolin.csv > {log} 2>&1
+        nextclade \
+            -i {input.fasta} \
+            -c {output.nextc} \
+            -r {input.ref} \
+            -a {input.tree} \
+            -q {input.qc} \
+            -g {input.gff} \
+            -j {threads} > {log} 2>&1
+        pangolin \
+            {input.fasta} \
+            -o {params.pango_dir} \
+            --outfile {wildcards.sample}_{wildcards.cov}_pangolin.csv > {log} 2>&1
         """
 
 rule format_typing:
     input:
-        pango = rules.Typing.output.pango,
-        nextc = rules.Typing.output.nextc,
+        pango = f"{datadir + cons + tbl}" + "{sample}_{cov}_pangolin.csv",
+        nextc = f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv",
         pangv = rules.Catch_typing_versions.output.pangolin,
         nextv = rules.Catch_typing_versions.output.nextclade
-    output: f"{datadir + cons + tbl}" + "{sample}_typingresults.tsv"
+    output: temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_typingresults.tsv")
     conda:
         f"{conda_envs}Typing.yaml"
     params:
         script = srcdir('scripts/typingagg.py')
+    threads: 1
     shell:
         """
         python {params.script} {wildcards.sample} {input.nextv} {input.pangv} {input.nextc} {input.pango} {output}
         """
 
+rule choose_typing:
+    input:
+        typings = expand(f"{datadir + cons + tbl}" + "{{sample}}_{cov}_typingresults.tsv", cov=mincoverages, allow_missing=True),
+        boc = f"{datadir + boc}" + "{sample}.tsv"
+    output: temp(f"{datadir + cons + tbl}" + "{sample}-typingresults.tsv")
+    conda:
+        f"{conda_envs}Typing.yaml"
+    params:
+        script = srcdir('scripts/Subtypingpicker.py'),
+        covs = ' '.join(map(str, mincoverages))
+    threads: 1
+    shell:
+        """
+        python {params.script} --key {wildcards.sample} --coverages {params.covs} --boc {input.boc} --typing_aggs {input.typings} --output {output}
+        """
+
+
 rule combine_typing_results:
     input: 
-        expand( "{p}{sample}_typingresults.tsv",
+        expand( "{p}{sample}-typingresults.tsv",
                     p = f"{datadir + cons + tbl}",
                     sample = SAMPLES)
     output: f"{res}Typing_results.tsv"
     shell:
         """
-        echo -e "Sample_name\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tScorpio Call\tPangolin status\tNextClade QC" > {output}
+        echo -e "Sample_name\tUsed_coverage_level\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tScorpio Call\tPangolin status\tNextClade QC" > {output}
         cat {input} >> {output}
         """
 
