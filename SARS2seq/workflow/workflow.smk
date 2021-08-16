@@ -37,6 +37,7 @@ rule all:
             cov = mincoverages),
         f"{res}Width_of_coverage.tsv",
         f"{res}Typing_results.tsv",
+        f"{res}Amplicon_coverage.csv",
         f"{res}" + "annotation_check.txt",
         expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
             p = res + amino,
@@ -325,7 +326,9 @@ if config["primer_file"] != "NONE":
             fq = rules.QC_filter.output.fq,
             pr = rules.Prepare_ref_and_primers.output.prm,
             ref = rules.Prepare_ref_and_primers.output.ref
-        output: f"{datadir + cln + prdir}" + "{sample}.fastq"
+        output: 
+            fq = f"{datadir + cln + prdir}" + "{sample}.fastq",
+            ep = f"{datadir + prim}" + "{sample}_removedprimers.csv"
         conda: 
             f"{conda_envs}Clean.yaml"
         log:
@@ -338,21 +341,25 @@ if config["primer_file"] != "NONE":
         shell:
             """
             AmpliGone -i {input.fq} \
-            -ref {input.ref} -pr {input.pr} \
-            -o {output} -at {params.amplicontype} \
+            -ref {input.ref} \
+            -pr {input.pr} \
+            -o {output.fq} \
+            -at {params.amplicontype} \
+            --export-primers {output.ep} \
             -t {threads}
             """
 if config["primer_file"] == "NONE":
     rule RemovePrimers:
         input: rules.QC_filter.output.fq
-        output: f"{datadir + cln + prdir}" + "{sample}.fastq"
+        output: 
+            fq = f"{datadir + cln + prdir}" + "{sample}.fastq"
         shell:
             """
-            cp {input} {output}
+            cp {input} {output.fq}
             """
 
 rule QC_clean:
-    input: rules.RemovePrimers.output
+    input: rules.RemovePrimers.output.fq
     output: 
         html    =   f"{datadir + qc_post}" + "{sample}_fastqc.html",
         zip     =   f"{datadir + qc_post}" + "{sample}_fastqc.zip"
@@ -380,7 +387,7 @@ rule QC_clean:
 if config["platform"] == "illumina":
     rule Alignment:
         input:
-            fq = rules.RemovePrimers.output,
+            fq = rules.RemovePrimers.output.fq,
             ref = rules.Prepare_ref_and_primers.output.ref
         output:
             bam = f"{datadir + aln + bf}" + "{sample}.bam",
@@ -406,7 +413,7 @@ if config["platform"] == "illumina":
 if config["platform"] == "nanopore":
     rule Alignment:
         input:
-            fq = rules.RemovePrimers.output,
+            fq = rules.RemovePrimers.output.fq,
             ref = rules.Prepare_ref_and_primers.output.ref
         output:
             bam = f"{datadir + aln + bf}" + "{sample}.bam",
@@ -432,7 +439,7 @@ if config["platform"] == "nanopore":
 if config["platform"] == "iontorrent":
     rule Alignment:
         input:
-            fq = rules.RemovePrimers.output,
+            fq = rules.RemovePrimers.output.fq,
             ref = rules.Prepare_ref_and_primers.output.ref
         output:
             bam = f"{datadir + aln + bf}" + "{sample}.bam",
@@ -467,16 +474,21 @@ rule Consensus:
         cons_50 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_50.fa",
         cons_100 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_100.fa",
         cov = f"{datadir + cons + covs}" + "{sample}_coverage.tsv",
-        gff = f"{datadir + cons + features}" + "{sample}.gff",
         vcf_1 = f"{datadir + aln + vf}" + "{sample}_cov_ge_1.vcf",
         vcf_5 = f"{datadir + aln + vf}" + "{sample}_cov_ge_5.vcf",
         vcf_10 = f"{datadir + aln + vf}" + "{sample}_cov_ge_10.vcf",
         vcf_50 = f"{datadir + aln + vf}" + "{sample}_cov_ge_50.vcf",
         vcf_100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf",
+        gff_1 = f"{datadir + cons + features}" + "{sample}_cov_ge_1.gff",
+        gff_5 = f"{datadir + cons + features}" + "{sample}_cov_ge_5.gff",
+        gff_10 = f"{datadir + cons + features}" + "{sample}_cov_ge_10.gff",
+        gff_50 = f"{datadir + cons + features}" + "{sample}_cov_ge_50.gff",
+        gff_100 = f"{datadir + cons + features}" + "{sample}_cov_ge_100.gff"
     params:
         mincov = "1 5 10 50 100",
         outdir = f"{datadir + cons + seqs}",
-        vcfdir = f"{datadir + aln + vf}"
+        vcfdir = f"{datadir + aln + vf}",
+        gffdir = f"{datadir + cons + features}"
     conda: 
         f"{conda_envs}Consensus.yaml"
     log:
@@ -492,9 +504,9 @@ rule Consensus:
         --samplename {wildcards.sample} \
         --output {params.outdir} \
         --variants {params.vcfdir} \
-        --output-gff {output.gff} \
+        --output-gff {params.gffdir} \
         --depth-of-coverage {output.cov} \
-        --noambiguity --threads {threads}
+        --threads {threads}
         """
 
 rule Concat_Seqs:
@@ -689,9 +701,48 @@ rule concat_boc:
     threads: 1
     shell:
         """
-        echo -e "Sample_name\tWidth_at_mincov_1\tWidth_at_mincov_5\tWidth_at_mincov_10\tWidth_at_mincov_50\tBoC_at_coverage_threshold_100" > {output}
+        echo -e "Sample_name\tWidth_at_mincov_1\tWidth_at_mincov_5\tWidth_at_mincov_10\tWidth_at_mincov_50\tWidth_at_mincov_100" > {output}
         cat {input} >> {output}
         """
+
+if config["primer_file"] != "NONE":
+    rule Calculate_amplicon_coverage:
+        input: 
+            pr = rules.RemovePrimers.output.ep,
+            cov = rules.Consensus.output.cov
+        output: 
+            ampcov = f"{datadir + prim}" + "{sample}_ampliconcoverage.csv"
+        conda:
+            f"{conda_envs}Consensus.yaml"
+        threads: 1
+        params:
+            script = srcdir("scripts/amplicon_covs.py")
+        shell:
+            """
+            python {params.script} \
+            --primers {input.pr} \
+            --coverages {input.cov} \
+            --key {wildcards.sample} \
+            --output {output.ampcov}
+            """
+
+    rule concat_amplicon_coverage:
+        input: expand(f"{datadir + prim}" + "{sample}_ampliconcoverage.csv", sample = SAMPLES)
+        output: f"{res}Amplicon_coverage.csv"
+        threads: 1
+        conda:
+            f"{conda_envs}Consensus.yaml"
+        params:
+            script = srcdir("scripts/concat_amplicon_covs.py")
+        shell:
+            """
+            python {params.script} --output {output} --input {input}
+            """
+
+if config["primer_file"] == "NONE":
+    rule Make_cov_file:
+        output: touch(f"{res}Amplicon_coverage.csv")
+        shell: "sleep 1"
 
 if config['platform'] == "illumina":
     rule MultiQC_report:
@@ -763,7 +814,7 @@ rule Catch_typing_versions:
     conda:
         f"{conda_envs}Typing.yaml"
     threads: 1
-    shadow: "shallow"
+    shadow: "minimal"
     shell:
         """
         pangolin --update-data
@@ -772,56 +823,92 @@ rule Catch_typing_versions:
         """
 
 rule Typing:
-    input: rules.Consensus.output.cons_1
+    input: 
+        fasta = f"{datadir + cons + seqs}" + "{sample}_cov_ge_{cov}.fa",
+        ref = rules.Prepare_ref_and_primers.output.ref,
+        qc = srcdir("files/nx_qc.json"),
+        tree = srcdir("files/nx_tree.json"),
+        pv = f"{datadir}" + "pangolin.version",
+        nc = f"{datadir}" + "nextclade.version"
     output: 
-        pango = temp(f"{datadir + cons + tbl}" + "{sample}_pangolin.csv"),
-        nextc = temp(f"{datadir + cons + tbl}" + "{sample}_nextclade.csv")
+        pango = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_pangolin.csv"),
+        nextc = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv"),
+        tmp_1 = temp("{sample}_cov_ge_{cov}.aligned.fasta"),
+        tmp_2 = temp("{sample}_cov_ge_{cov}.errors.csv"),
+        tmp_3 = temp("{sample}_cov_ge_{cov}.insertions.csv"),
     conda:
         f"{conda_envs}Typing.yaml"
     threads: config['threads']['Typing']
     log:
-        f"{logdir}" + "Typing_{sample}.log"
+        f"{logdir}" + "Typing_{sample}_{cov}.log"
     params:
         pango_dir = f"{datadir + cons + tbl}",
     shadow: "minimal"
     shell:
         """
-        nextclade -i {input} -c {output.nextc} -j {threads} > {log} 2>&1
-        pangolin {input} -o {params.pango_dir} --outfile {wildcards.sample}_pangolin.csv > {log} 2>&1
+        nextclade \
+            -i {input.fasta} \
+            -c {output.nextc} \
+            -r {input.ref} \
+            -a {input.tree} \
+            -q {input.qc} \
+            -j {threads} > {log} 2>&1
+        pangolin \
+            {input.fasta} \
+            -o {params.pango_dir} \
+            --outfile {wildcards.sample}_{wildcards.cov}_pangolin.csv > {log} 2>&1
         """
 
 rule format_typing:
     input:
-        pango = rules.Typing.output.pango,
-        nextc = rules.Typing.output.nextc,
+        pango = f"{datadir + cons + tbl}" + "{sample}_{cov}_pangolin.csv",
+        nextc = f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv",
         pangv = rules.Catch_typing_versions.output.pangolin,
         nextv = rules.Catch_typing_versions.output.nextclade
-    output: f"{datadir + cons + tbl}" + "{sample}_typingresults.tsv"
+    output: temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_typingresults.tsv")
     conda:
         f"{conda_envs}Typing.yaml"
     params:
         script = srcdir('scripts/typingagg.py')
+    threads: 1
     shell:
         """
         python {params.script} {wildcards.sample} {input.nextv} {input.pangv} {input.nextc} {input.pango} {output}
         """
 
+rule choose_typing:
+    input:
+        typings = expand(f"{datadir + cons + tbl}" + "{{sample}}_{cov}_typingresults.tsv", cov=mincoverages, allow_missing=True),
+        boc = f"{datadir + boc}" + "{sample}.tsv"
+    output: temp(f"{datadir + cons + tbl}" + "{sample}-typingresults.tsv")
+    conda:
+        f"{conda_envs}Typing.yaml"
+    params:
+        script = srcdir('scripts/Subtypingpicker.py'),
+        covs = ' '.join(map(str, mincoverages))
+    threads: 1
+    shell:
+        """
+        python {params.script} --key {wildcards.sample} --coverages {params.covs} --boc {input.boc} --typing_aggs {input.typings} --output {output}
+        """
+
+
 rule combine_typing_results:
     input: 
-        expand( "{p}{sample}_typingresults.tsv",
+        expand( "{p}{sample}-typingresults.tsv",
                     p = f"{datadir + cons + tbl}",
                     sample = SAMPLES)
     output: f"{res}Typing_results.tsv"
     shell:
         """
-        echo -e "Sample_name\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tScorpio Call\tPangolin status\tNextClade QC" > {output}
+        echo -e "Sample_name\tUsed_coverage_level\tTyping_date\tPangolin version\tNextClade version\tPangolin lineages version\tPangolin Lineage\tNextClade Clade\tScorpio Call\tPangolin status\tNextClade QC" > {output}
         cat {input} >> {output}
         """
 
 rule Extract_AA:
     input:
         fasta = f"{datadir + cons + seqs}" + "{sample}_cov_ge_{cov}.fa",
-        gff = rules.Consensus.output.gff
+        gff = f"{datadir + cons + features}" + "{sample}_cov_ge_{cov}.gff"
     output: 
         f"{datadir + cons + amino}" + "orf1a/{sample}_{cov}.fa",
         f"{datadir + cons + amino}" + "orf1b/{sample}_{cov}.fa",
@@ -844,9 +931,6 @@ rule Extract_AA:
         """
         python {params.script} {input.fasta} {input.gff} {wildcards.sample} {wildcards.cov} {params.outdir}
         """
-
-mincoverages = [1,5,10,50,100]
-orfs = ["orf1a","orf1b","S","ORF3a","E","M","ORF6","ORF7a","ORF8","N","ORF10"]
 
 for o in orfs:
     rule:

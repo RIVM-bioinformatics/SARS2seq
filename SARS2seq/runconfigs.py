@@ -8,9 +8,19 @@ import os
 
 import yaml
 
+import multiprocessing
 
-def SnakemakeConfig(conf, cores, dryrun):
-    cores = cores - 2
+def set_cores(cores):
+    available = multiprocessing.cpu_count()
+    if cores == available:
+        return cores - 2 
+    if cores > available:
+        return available - 2
+    if cores < available:
+        return cores
+
+def SnakemakeConfig(conf, cpus, dryrun):
+    cores = set_cores(cpus)
     compmode = conf["COMPUTING"]["compmode"]
 
     if compmode == "local":
@@ -37,10 +47,9 @@ def SnakemakeConfig(conf, cores, dryrun):
 
     return config
 
-
 def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
     if conf["COMPUTING"]["compmode"] == "local":
-        threads_highcpu = int(cores - 2)
+        threads_highcpu = int(set_cores(cores))
         threads_midcpu = int(cores / 2)
         threads_lowcpu = 1
     if conf["COMPUTING"]["compmode"] == "grid":
@@ -59,7 +68,7 @@ def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
             "QC": threads_midcpu,
             "AdapterRemoval": threads_lowcpu,
             "PrimerRemoval": threads_highcpu,
-            "Consensus": threads_lowcpu,
+            "Consensus": threads_midcpu,
             "Index": threads_lowcpu,
             "Typing": threads_lowcpu,
         },
