@@ -826,12 +826,16 @@ rule Typing:
     input: 
         fasta = f"{datadir + cons + seqs}" + "{sample}_cov_ge_{cov}.fa",
         ref = rules.Prepare_ref_and_primers.output.ref,
-        gff = f"{datadir + cons + features}" + "{sample}_cov_ge_{cov}.gff",
         qc = srcdir("files/nx_qc.json"),
-        tree = srcdir("files/nx_tree.json")
+        tree = srcdir("files/nx_tree.json"),
+        pv = f"{datadir}" + "pangolin.version",
+        nc = f"{datadir}" + "nextclade.version"
     output: 
         pango = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_pangolin.csv"),
-        nextc = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv")
+        nextc = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv"),
+        tmp_1 = temp("{sample}_cov_ge_{cov}.aligned.fasta"),
+        tmp_2 = temp("{sample}_cov_ge_{cov}.errors.csv"),
+        tmp_3 = temp("{sample}_cov_ge_{cov}.insertions.csv"),
     conda:
         f"{conda_envs}Typing.yaml"
     threads: config['threads']['Typing']
@@ -848,7 +852,6 @@ rule Typing:
             -r {input.ref} \
             -a {input.tree} \
             -q {input.qc} \
-            -g {input.gff} \
             -j {threads} > {log} 2>&1
         pangolin \
             {input.fasta} \
