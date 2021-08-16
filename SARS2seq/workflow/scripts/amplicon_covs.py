@@ -187,7 +187,9 @@ def Average_cov(primers, covs):
             localcov.append(covd[i].get("cov"))
         averages[avg(localcov)] = v.get("name")
 
-    primers["avg_cov"] = averages
+    avgdf = pd.DataFrame.from_dict(averages, orient='index').reset_index().rename(columns={0: 'name', "index": "avg_cov"})
+    primers = pd.merge(primers, avgdf, on="name", how="inner")
+    #primers["avg_cov"] = averages
 
     return primers
 
