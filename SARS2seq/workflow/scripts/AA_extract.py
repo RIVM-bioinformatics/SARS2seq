@@ -19,6 +19,6 @@ for k in gffdict.keys():
 
     sliced_seq = seq[start - 1 : end].replace("-", "")
     AminoAcids = Seq(sliced_seq).translate(to_stop=True)
-    
+
     with open(f"{outdir}/{orfname}/{samplename}_{cov}.fa", "w") as out:
         out.write(f">{samplename}_ORF-{orfname}_cov_{cov}\n" f"{AminoAcids}\n")

@@ -10,14 +10,16 @@ import yaml
 
 import multiprocessing
 
+
 def set_cores(cores):
     available = multiprocessing.cpu_count()
     if cores == available:
-        return cores - 2 
+        return cores - 2
     if cores > available:
         return available - 2
     if cores < available:
         return cores
+
 
 def SnakemakeConfig(conf, cpus, dryrun):
     cores = set_cores(cpus)
@@ -46,6 +48,7 @@ def SnakemakeConfig(conf, cpus, dryrun):
         }
 
     return config
+
 
 def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
     if conf["COMPUTING"]["compmode"] == "local":
