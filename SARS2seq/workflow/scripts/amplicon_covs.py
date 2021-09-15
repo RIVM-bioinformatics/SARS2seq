@@ -159,9 +159,17 @@ def Find_NonOverlap(df):
             primerend = t_end
         startingpoint[primerstart] = v.get("name")
         endingpoint[primerend] = v.get("name")
-    
-    startdf = pd.DataFrame.from_dict(startingpoint, orient="index").reset_index().rename(columns={0: "name", "index": "unique_start"})
-    enddf = pd.DataFrame.from_dict(endingpoint, orient="index").reset_index().rename(columns={0: "name", "index": "unique_end"})
+
+    startdf = (
+        pd.DataFrame.from_dict(startingpoint, orient="index")
+        .reset_index()
+        .rename(columns={0: "name", "index": "unique_start"})
+    )
+    enddf = (
+        pd.DataFrame.from_dict(endingpoint, orient="index")
+        .reset_index()
+        .rename(columns={0: "name", "index": "unique_end"})
+    )
     df = pd.merge(df, startdf, on="name", how="inner")
     df = pd.merge(df, enddf, on="name", how="inner")
 
@@ -187,9 +195,13 @@ def Average_cov(primers, covs):
             localcov.append(covd[i].get("cov"))
         averages[avg(localcov)] = v.get("name")
 
-    avgdf = pd.DataFrame.from_dict(averages, orient='index').reset_index().rename(columns={0: 'name', "index": "avg_cov"})
+    avgdf = (
+        pd.DataFrame.from_dict(averages, orient="index")
+        .reset_index()
+        .rename(columns={0: "name", "index": "avg_cov"})
+    )
     primers = pd.merge(primers, avgdf, on="name", how="inner")
-    #primers["avg_cov"] = averages
+    # primers["avg_cov"] = averages
 
     return primers
 
@@ -209,14 +221,16 @@ if __name__ == "__main__":
     rf = remove_alt_primer_r(remove_alt_keyword(rf))
 
     non_overlapping_points = Find_NonOverlap(
-        pd.merge(lf, rf, on="name", how="inner").rename(
+        pd.merge(lf, rf, on="name", how="inner")
+        .rename(
             columns={
                 "start_x": "leftstart",
                 "stop_x": "leftstop",
                 "start_y": "rightstart",
                 "stop_y": "rightstop",
             }
-        ).drop_duplicates(subset="name")
+        )
+        .drop_duplicates(subset="name")
     )
 
     with_average = Average_cov(non_overlapping_points, covs)
