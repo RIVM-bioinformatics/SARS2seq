@@ -1,0 +1,18 @@
+site_name: SARS2seq
+repo_name: Github
+repo_url: https://github.com/RIVM-bioinformatics/SARS2seq 
+copyright: copyright © 2021 RIVM
+
+
+theme:
+  name: cluster
+  language: en
+  hidden: ['Home']
+  nav_right: ['Changelog']
+
+nav:
+  - Home: index.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - attr_list
