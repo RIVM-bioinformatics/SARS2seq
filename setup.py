@@ -4,14 +4,6 @@ if sys.version_info.major != 3 or sys.version_info.minor < 7:
     print("Error: you must execute setup.py using Python 3.7 or later")
     sys.exit(1)
     
-from setuptools import find_packages, setup
-
-from SARS2seq.version import __version__
-
-with open("README.md", "rb") as readme:
-    DESCR = readme.read().decode()
-
-
 try:
     import conda
 except SystemError:
@@ -19,6 +11,13 @@ except SystemError:
 Error: conda could not be accessed.
 Please make sure conda is installed and functioning properly before installing SARS2seq
 """)
+    
+from setuptools import find_packages, setup
+
+from SARS2seq.version import __version__
+
+with open("README.md", "rb") as readme:
+    DESCR = readme.read().decode()
 
 
 setup(
