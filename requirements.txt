@@ -1,6 +1,4 @@
-gnureadline>=8.0.0
-biopython>=1.78
-snakemake>=6.0.5
-drmaa==0.7.9
+# This file is only used for requirements of the documentation site
+# please do not use this requirements.txt file for installation of SARS2seq
 mkdocs
 mkdocs-cluster
