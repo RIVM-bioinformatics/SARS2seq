@@ -10,6 +10,18 @@ jobs:
     steps:
       - name: Checkout main
         uses: actions/checkout@v2
+        
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      
+      - name: install mkdocs
+        uses: BSFishy/pip-action@v1
+        with:
+          packages: |
+            mkdocs
+            mkdocs-cluster
 
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@nomaterial
