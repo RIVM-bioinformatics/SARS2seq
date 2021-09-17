@@ -1,0 +1,6 @@
+gnureadline>=8.0.0
+biopython>=1.78
+snakemake>=6.0.5
+drmaa==0.7.9
+mkdocs
+mkdocs-cluster
