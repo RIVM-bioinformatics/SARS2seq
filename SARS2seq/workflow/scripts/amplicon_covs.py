@@ -144,7 +144,7 @@ def Find_NonOverlap(df):
         s = v.get("leftstop")
         t_end = v.get("rightstart")
         if x != lastindex:
-            end_override = dd[x + 1].get("leftstop")
+            end_override = dd[x + 1].get("leftstart")
         else:
             end_override = None
         if end_override is not None:
