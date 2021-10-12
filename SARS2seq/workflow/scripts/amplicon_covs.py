@@ -140,11 +140,15 @@ def Find_NonOverlap(df):
     startingpoint = {}
     endingpoint = {}
     lastindex = list(enumerate(dd))[-1][0]
+    firstindex = list(enumerate(dd))[0][0]
     for x, v in enumerate(dd):
-        s = v.get("leftstop")
         t_end = v.get("rightstart")
+        if x != firstindex:
+            s = dd[x - 1].get("rightstart")
+        else:
+            s = v.get("leftstop")
         if x != lastindex:
-            end_override = dd[x + 1].get("leftstart")
+            end_override = dd[x + 1].get("leftstop")
         else:
             end_override = None
         if end_override is not None:
