@@ -10,6 +10,7 @@ dependencies:
   - libffi==3.3
   - pangolin>=3.0
   - nextclade == 1.2.1
+  - snakemake==6.4.1
   - pandas>=1.2.3
   - usher
   - pip
