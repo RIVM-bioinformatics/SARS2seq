@@ -7,6 +7,7 @@ channels:
   - defaults
 dependencies:
   - python=3.7
+  - libffi==3.3
   - pangolin>=3.0
   - nextclade == 1.2.1
   - snakemake==6.4.1

@@ -36,7 +36,7 @@ Additional files for further analysis can be found in the data/ once processing 
 1. Download the latest version of SARS2seq by "cloning" this repository and navigating to the newly created directory.  
 Copy and paste the code-snippet below in order to do so.  
     ```
-    git clone https://github.com/RIVM-bioinformatics/SARS2seq.git && cd SARSseq/
+    git clone https://github.com/RIVM-bioinformatics/SARS2seq.git && cd SARS2seq/
     ```
 2. Create the required conda-environment and install the necessary dependencies.  
 Copy and paste the code-snippet below in order to create the new conda-environment and directly activate it.
