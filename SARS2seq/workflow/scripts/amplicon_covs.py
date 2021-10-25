@@ -4,6 +4,9 @@ import pandas as pd
 
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 
+# python amplicon_covs.py --primers R826_B96_4802157154_removedprimers.csv --coverages R826_B96_4802157154_coverage.tsv --output Test_Transpose_R826_B96_4802157154.csv --key R826_B96_4802157154 --uniqlocs Unique_NotTranspose_R826_B96_4802157154.csv
+
+# python /mnt/scratch_dir/landmanf/coverage_plot_new/SARS2seq/workflow/scripts/amplicon_covs.py --primers old_testfiles/R826_B96_4802157154_removedprimers.csv --coverages old_testfiles/R826_B96_4802157154_coverage.tsv --output newoutput_R826_B96_4802157154.csv --key R826_B96_4802157154 --uniqlocs uniqlocs_newoutput_R826_B96_4802157154.csv --entire_table entire_table_newoutput_R826_B96_4802157154.csv
 
 args = argparse.ArgumentParser()
 
@@ -30,6 +33,22 @@ args.add_argument(
     metavar="File",
     type=str,
     help="Output file with average coverage per amplicon",
+    required=True,
+)
+
+args.add_argument(
+    "--uniqlocs",
+    metavar="File",
+    type=str,
+    help="Output file with unique start and end location",
+    required=True,
+)
+
+args.add_argument(
+    "--entire_table",
+    metavar="File",
+    type=str,
+    help="Output entire table so I have primer end and start positions that got removed",
     required=True,
 )
 
@@ -221,6 +240,8 @@ if __name__ == "__main__":
     lf["name"] = lf["name"].apply(remove_keyword)
     rf["name"] = rf["name"].apply(remove_keyword)
 
+    # Want a new colomn that's similar to name but contains the full primer name so I can later retrieve the appropiate sequence to compare to
+
     lf = remove_alt_primer_l(remove_alt_keyword(lf))
     rf = remove_alt_primer_r(remove_alt_keyword(rf))
 
@@ -238,6 +259,27 @@ if __name__ == "__main__":
     )
 
     with_average = Average_cov(non_overlapping_points, covs)
+
+    entire_table = Average_cov(non_overlapping_points, covs)
+    entire_table = with_average.drop(
+        columns=[
+            "avg_cov",
+        ]
+    )
+
+    entire_table.to_csv(flags.entire_table, sep=",", index=True, header=False)
+
+    unique_locs = with_average.drop(
+        columns=[
+            "leftstart",
+            "leftstop",
+            "rightstart",
+            "rightstop",
+            "avg_cov",
+        ]
+    )
+
+    unique_locs.to_csv(flags.uniqlocs, sep=",", index=True, header=False)
 
     with_average = with_average.drop(
         columns=[
