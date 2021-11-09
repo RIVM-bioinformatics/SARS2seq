@@ -1,0 +1,38 @@
+name: Build and release
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  bump-and-release:
+    name: Release version
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: GoogleCloudPlatform/release-please-action@v2
+        id: release
+        with:
+          release-type: python
+          package-name: SARS2seq
+
+  update-docs:
+    needs: bump-and-release
+    name: Update docs
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, 'chore:')"
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v2
+
+      - name: Copy Changelog
+        uses: canastro/copy-file-action@master
+        with:
+          source: "CHANGELOG.md"
+          target: "docs/changelog.md"
+      
+      - name: Deploy docs
+        uses: mhausenblas/mkdocs-deploy-gh-pages@nomaterial
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIREMENTS: docs-install.txt
