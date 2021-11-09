@@ -388,6 +388,7 @@ if config["primer_file"] != "NONE":
             -o {output.fq} \
             -at {params.amplicontype} \
             --export-primers {output.ep} \
+            -to \
             -t {threads}
             """
 if config["primer_file"] == "NONE":
