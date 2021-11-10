@@ -30,7 +30,7 @@ jobs:
         with:
           source: "CHANGELOG.md"
           target: "docs/changelog.md"
-      
+
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@nomaterial
         env:
