@@ -479,7 +479,6 @@ if config["platform"] == "nanopore":
             mem_mb = medium_memory_job
         params:
             mapthreads = config['threads']['Alignments'] - 1,
-            filters = config["runparams"]["alignmentfilters"]
             filters = config["runparams"]["alignmentfilters"],
             minimap_options = '-ax map-ont --end-bonus 10 -E2,0 -k28 -O8,24 -A3 -B4'
         shell:
