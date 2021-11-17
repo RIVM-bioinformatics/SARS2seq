@@ -83,8 +83,56 @@ Please specify the computing-mode that you wish to use for SARS2seq.
             fixedchoices=False,
         )
 
+    conf_object["GENERAL"] = {
+        "auto_update": AskPrompts(
+            f"""
+SARS2seq can check and update itself everytime you run it.
+Please specify whether you wish to enable the auto-update feature.
+            """,
+            f"""Do you wish to enable the auto-update feature? [yes/no] """,
+            ["yes", "no"],
+            fixedchoices=True,
+        )
+    }
+
+    if conf_object["GENERAL"]["auto_update"] == "no":
+        conf_object["GENERAL"]["ask_for_update"] = AskPrompts(
+            f"""
+SARS2seq will not automatically update itself, but SARS2seq can still check for updates and ask you if you wish to update.
+            """,
+            f"""Do you want SARS2seq to {color.YELLOW}ask you{color.END} to update everytime a new update is available? [yes/no] """,
+            ["yes", "no"],
+            fixedchoices=True,
+        )
+
     with open(file, "w") as conffile:
         conf_object.write(conffile)
+
+
+def AllOptionsGiven(config):
+    all_present = True
+
+    if config.has_section("COMPUTING") is True:
+        if config.has_option("COMPUTING", "compmode") is True:
+            if config["COMPUTING"]["compmode"] == "grid":
+                if config.has_option("COMPUTING", "queuename") is False:
+                    all_present = False
+        else:
+            all_present = False
+    else:
+        all_present = False
+
+    if config.has_section("GENERAL") is True:
+        if config.has_option("GENERAL", "auto_update") is True:
+            if config["GENERAL"]["auto_update"] == "no":
+                if config.has_option("GENERAL", "ask_for_update") is False:
+                    all_present = False
+        else:
+            all_present = False
+    else:
+        all_present = False
+
+    return all_present
 
 
 def ReadConfig(file):
@@ -95,4 +143,9 @@ def ReadConfig(file):
 
     config = configparser.ConfigParser()
     config.read(file)
+
+    while AllOptionsGiven(config) is False:
+        BuildConfig(file)
+        config = configparser.ConfigParser()
+        config.read(file)
     return config
