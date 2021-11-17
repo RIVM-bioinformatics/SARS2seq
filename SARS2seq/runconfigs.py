@@ -4,11 +4,10 @@
 Construct and write configuration files for SnakeMake
 """
 
+import multiprocessing
 import os
 
 import yaml
-
-import multiprocessing
 
 
 def set_cores(cores):
