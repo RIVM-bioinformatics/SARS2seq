@@ -50,6 +50,15 @@ SARS2seq is now installed!
 You can start SARS2seq from anywhere on your system as long as the SARS2seq conda-environment is active.  
 You can also use SARS2seq in a different conda-environment as long as the software dependencies match.
 
+### Auto-updating
+
+Since version `v0.3.1`, SARS2seq is able to update itself to the latest released version.  
+This makes it easier for everyone to use the latest available version without having to manually check the GitHub releases.
+
+During first-usage of SARS2seq you will be asked to configure your preffered settings for auto-updating. (enabled/disabled/ask-everytime).
+
+If you wish to run SARS2seq without the (auto-)updater checking for new releases, then add the `--skip-updates` flag to your command. In this case you will **not** be notified if there is a new release available, nor will your version of SARS2seq be updated.  
+
 ---
 
 ## Preparing input primer file
