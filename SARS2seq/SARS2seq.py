@@ -60,7 +60,7 @@ def get_args(givenargs):
         formatter_class=MyHelpFormatter,
         add_help=False,
     )
-    
+
     required_args = arg.add_argument_group("Required arguments")
     optional_args = arg.add_argument_group("Optional arguments")
 

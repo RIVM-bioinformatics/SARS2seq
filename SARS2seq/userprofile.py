@@ -7,11 +7,11 @@ This is so a user doesn't have to give this information manually on every run
 import configparser
 import os
 import readline
+import subprocess
 import sys
 
 from .functions import color, tabCompleter
 
-import subprocess
 
 def FileExists(file):
     if os.path.isfile(file):
