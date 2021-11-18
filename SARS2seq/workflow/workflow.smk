@@ -481,7 +481,7 @@ if config["platform"] == "nanopore":
             mapthreads = config['threads']['Alignments'] - 1,
             filters = config["runparams"]["alignmentfilters"]
             filters = config["runparams"]["alignmentfilters"],
-            minimap_options = '-ax map-ont --end-bonus 10 -E2,0 -k28 -O8,24 -A3 -B4'
+            minimap_options = '-ax map-ont -E2,0 -O8,24 -A4 -B4'
         shell:
             """
             minimap2 {params.minimap_options} -t {params.mapthreads} {input.ref} {input.fq} 2>> {log} |\
