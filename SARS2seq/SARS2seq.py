@@ -17,6 +17,7 @@ import yaml
 from .functions import MyHelpFormatter, color
 from .runconfigs import WriteConfigs
 from .samplesheet import WriteSampleSheet
+from .update import update
 from .userprofile import ReadConfig
 from .validatefasta import IsValidFasta
 from .version import __version__
@@ -54,13 +55,16 @@ def get_args(givenargs):
 
     arg = argparse.ArgumentParser(
         prog="SARS2seq",
-        usage="%(prog)s [required options] [optional arguments]",
+        usage="%(prog)s [required arguments] [optional arguments]",
         description="SARS2seq: a dedicated pipeline for analysing SARS-CoV-2 sequencing data in order to generate a consensus sequence specifically tuned to the SARS-CoV-2 virus.",
         formatter_class=MyHelpFormatter,
         add_help=False,
     )
 
-    arg.add_argument(
+    required_args = arg.add_argument_group("Required arguments")
+    optional_args = arg.add_argument_group("Optional arguments")
+
+    required_args.add_argument(
         "--input",
         "-i",
         type=dir_path,
@@ -69,7 +73,7 @@ def get_args(givenargs):
         required=True,
     )
 
-    arg.add_argument(
+    required_args.add_argument(
         "--output",
         "-o",
         metavar="DIR",
@@ -79,7 +83,7 @@ def get_args(givenargs):
         required=True,
     )
 
-    arg.add_argument(
+    required_args.add_argument(
         "--primers",
         "-pr",
         type=lambda s: fasta_input((".fasta", ".fa"), s),
@@ -88,7 +92,7 @@ def get_args(givenargs):
         required=True,
     )
 
-    arg.add_argument(
+    required_args.add_argument(
         "--platform",
         default="nanopore",
         const="nanopore",
@@ -98,7 +102,7 @@ def get_args(givenargs):
         required=True,
     )
 
-    arg.add_argument(
+    required_args.add_argument(
         "--amplicon-type",
         "-at",
         default="end-to-end",
@@ -109,7 +113,7 @@ def get_args(givenargs):
         required=True,
     )
 
-    arg.add_argument(
+    optional_args.add_argument(
         "--threads",
         "-t",
         default=min(multiprocessing.cpu_count(), 128),
@@ -118,7 +122,7 @@ def get_args(givenargs):
         help=f"Number of local threads that are available to use.\nDefault is the number of available threads in your system ({min(multiprocessing.cpu_count(), 128)})",
     )
 
-    arg.add_argument(
+    optional_args.add_argument(
         "--version",
         "-v",
         version=__version__,
@@ -126,7 +130,7 @@ def get_args(givenargs):
         help="Show the SARS2seq version and exit",
     )
 
-    arg.add_argument(
+    optional_args.add_argument(
         "--help",
         "-h",
         action="help",
@@ -134,10 +138,14 @@ def get_args(givenargs):
         help="Show this help message and exit",
     )
 
-    arg.add_argument(
+    optional_args.add_argument(
         "--dryrun",
         action="store_true",
         help="Run the workflow without actually doing anything",
+    )
+
+    optional_args.add_argument(
+        "--skip-updates", action="store_true", help="Skip the update check",
     )
 
     if len(givenargs) < 1:
@@ -174,7 +182,14 @@ def main():
     --> Change working directories and make necessary local files for snakemake
     --> Run snakemake with appropriate settings
     """
+
+    ##> Check the default userprofile, make it if it doesn't exist
+    conf = ReadConfig(os.path.expanduser("~/.SARS2seq_defaultprofile.ini"))
+
     flags = get_args(sys.argv[1:])
+
+    if not flags.skip_updates:
+        update(sys.argv, conf)
 
     inpath = os.path.abspath(flags.input)
     # refpath = os.path.abspath(flags.reference)
@@ -187,9 +202,6 @@ def main():
     here = os.path.abspath(os.path.dirname(__file__))
 
     Snakefile = os.path.join(here, "workflow", "workflow.smk")
-
-    ##> Check the default userprofile, make it if it doesn't exist
-    conf = ReadConfig(os.path.expanduser("~/.SARS2seq_defaultprofile.ini"))
 
     ##@ check if the input directory contains valid files
     if CheckInputFiles(inpath) is False:
