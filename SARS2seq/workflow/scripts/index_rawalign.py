@@ -15,16 +15,15 @@ def GetArgs(sysargs):
             if ext != ".bam":
                 args.error(f"Input file ({fname}) doesn't seem to be a BAM-file.")
             return fname
-        else:
-            print(f'"{fname}" is not a file. Exiting...')
-            sys.exit(-1)
+        print(f'"{fname}" is not a file. Exiting...')
+        sys.exit(-1)
 
     args = argparse.ArgumentParser()
 
     args.add_argument(
         "-i",
         "--input",
-        type=lambda s: checkbam(s),
+        type=checkbam,
         required=True,
         help="Input bam file",
     )
