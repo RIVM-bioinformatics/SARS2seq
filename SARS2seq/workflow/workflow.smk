@@ -23,7 +23,7 @@ reffile = srcdir("files/MN908947.fasta")
 ref_basename = os.path.splitext(os.path.basename(reffile))[0]
 
 mincoverages = [1,5,10,50,100]
-orfs = ["orf1a","orf1b","S","ORF3a","E","M","ORF6","ORF7a","ORF8","N","ORF10"]
+orfs = ["orf1a","orf1b","S","ORF3a","E","M","ORF6","ORF7a", "ORF7b","ORF8","N","ORF10"]
 
 def low_memory_job(wildcards, threads, attempt):
     if config['computing_execution'] == 'local':
@@ -404,6 +404,43 @@ if config["primer_file"] == "NONE":
             cp {input} {output.fq}
             """
 
+rule Index_RawAlignment:
+    input:
+        bam = rules.RemoveAdapters_p1.output.bam,
+        ref = rules.Prepare_ref_and_primers.output.ref
+    output:
+        index = f"{datadir + cln + raln}" + "{sample}_index.csv.gz"
+    conda:
+        f"{conda_envs}Consensus.yaml"
+    threads: config['threads']['Index']
+    resources:
+        mem_mb = low_memory_job
+    params:
+        script = srcdir('scripts/index_rawalign.py')
+    shell:
+        """
+        python {params.script} -i {input.bam} -r {input.ref} -o {output.index}
+        """
+
+
+rule Filter_RawAlignment_Index:
+    input:
+        index = rules.Index_RawAlignment.output.index,
+        coords = rules.RemovePrimers.output.ep
+    output:
+        filt = f"{datadir + cln + raln}" + "{sample}_filtered_index.csv.gz"
+    conda:
+        f"{conda_envs}Consensus.yaml"
+    threads: config['threads']['Index']
+    resources:
+        mem_mb = low_memory_job
+    params:
+        script = srcdir('scripts/overlap_coords.py')
+    shell:
+        """
+        python {params.script} -index {input.index} -primers {input.coords} -output {output.filt}
+        """
+
 rule QC_clean:
     input: rules.RemovePrimers.output.fq
     output:
@@ -521,7 +558,8 @@ rule Consensus:
     input:
         bam = rules.Alignment.output.bam,
         gff = srcdir("files/MN908947.gff"),
-        ref = rules.Prepare_ref_and_primers.output.ref
+        ref = rules.Prepare_ref_and_primers.output.ref,
+        overrides = rules.Filter_RawAlignment_Index.output.filt
     output:
         cons_1 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_1.fa",
         cons_5 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_5.fa",
@@ -563,6 +601,7 @@ rule Consensus:
         --variants {params.vcfdir} \
         --output-gff {params.gffdir} \
         --depth-of-coverage {output.cov} \
+        --index-override {input.overrides} \
         --threads {threads}
         """
 
@@ -1021,6 +1060,7 @@ rule Extract_AA:
         f"{datadir + cons + amino}" + "M/{sample}_{cov}.fa",
         f"{datadir + cons + amino}" + "ORF6/{sample}_{cov}.fa",
         f"{datadir + cons + amino}" + "ORF7a/{sample}_{cov}.fa",
+        f"{datadir + cons + amino}" + "ORF7b/{sample}_{cov}.fa",
         f"{datadir + cons + amino}" + "ORF8/{sample}_{cov}.fa",
         f"{datadir + cons + amino}" + "N/{sample}_{cov}.fa",
         f"{datadir + cons + amino}" + "ORF10/{sample}_{cov}.fa"
