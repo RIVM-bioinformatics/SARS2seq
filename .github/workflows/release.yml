@@ -30,9 +30,9 @@ jobs:
         with:
           source: "CHANGELOG.md"
           target: "docs/changelog.md"
-      
+
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@nomaterial
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REQUIREMENTS: docs-install.txt
+          REQUIREMENTS: docs-requirements.txt

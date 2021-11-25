@@ -4,11 +4,10 @@
 Construct and write configuration files for SnakeMake
 """
 
+import multiprocessing
 import os
 
 import yaml
-
-import multiprocessing
 
 
 def set_cores(cores):
@@ -20,9 +19,11 @@ def set_cores(cores):
     if cores < available:
         return cores
 
+
 def get_max_local_mem():
-    avl_mem_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
-    return int(round(avl_mem_bytes/(1024.**2) - 2000, -3))
+    avl_mem_bytes = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    return int(round(avl_mem_bytes / (1024.0 ** 2) - 2000, -3))
+
 
 def SnakemakeConfig(conf, cpus, dryrun):
     cores = set_cores(cpus)
