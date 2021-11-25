@@ -21,11 +21,7 @@ def GetArgs(sysargs):
     args = argparse.ArgumentParser()
 
     args.add_argument(
-        "-i",
-        "--input",
-        type=checkbam,
-        required=True,
-        help="Input bam file",
+        "-i", "--input", type=checkbam, required=True, help="Input bam file",
     )
     args.add_argument(
         "-r", "--reference", type=str, required=True, help="Reference fasta file"
