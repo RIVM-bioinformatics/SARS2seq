@@ -951,7 +951,7 @@ rule Catch_typing_versions:
     shadow: "minimal"
     shell:
         """
-        pangolin --update-data
+        pangolin --update
         nextclade dataset get --name='sars-cov-2' --output-dir='{output.nxc_dataset}'
         pangolin -v > {output.pangolin}
         nextclade --version > {output.nextclade}
