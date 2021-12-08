@@ -13,6 +13,3 @@ dependencies:
   - snakemake==6.4.1
   - pandas>=1.2.3
   - usher
-  - pip
-  - pip:
-    - git+https://github.com/cov-lineages/pango-designation.git
