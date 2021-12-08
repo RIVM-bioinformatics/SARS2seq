@@ -941,7 +941,8 @@ if config['platform'] == "nanopore" or config['platform'] == "iontorrent":
 rule Catch_typing_versions:
     output:
         pangolin = temp(f"{datadir}" + "pangolin.version"),
-        nextclade= temp(f"{datadir}" + "nextclade.version")
+        nextclade= temp(f"{datadir}" + "nextclade.version"),
+        nxc_dataset= temp(directory(f"{datadir + fls}"))
     conda:
         f"{conda_envs}Typing.yaml"
     threads: 1
@@ -950,7 +951,8 @@ rule Catch_typing_versions:
     shadow: "minimal"
     shell:
         """
-        pangolin --update-data
+        pangolin --update
+        nextclade dataset get --name='sars-cov-2' --output-dir='{output.nxc_dataset}'
         pangolin -v > {output.pangolin}
         nextclade --version > {output.nextclade}
         """
@@ -959,16 +961,12 @@ rule Typing:
     input:
         fasta = f"{datadir + cons + seqs}" + "{sample}_cov_ge_{cov}.fa",
         ref = rules.Prepare_ref_and_primers.output.ref,
-        qc = srcdir("files/nx_qc.json"),
-        tree = srcdir("files/nx_tree.json"),
         pv = f"{datadir}" + "pangolin.version",
-        nc = f"{datadir}" + "nextclade.version"
+        nc = f"{datadir}" + "nextclade.version",
+        nc_dataset = rules.Catch_typing_versions.output.nxc_dataset
     output:
         pango = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_pangolin.csv"),
         nextc = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv"),
-        tmp_1 = temp("{sample}_cov_ge_{cov}.aligned.fasta"),
-        tmp_2 = temp("{sample}_cov_ge_{cov}.errors.csv"),
-        tmp_3 = temp("{sample}_cov_ge_{cov}.insertions.csv"),
     conda:
         f"{conda_envs}Typing.yaml"
     threads: config['threads']['Typing']
@@ -981,13 +979,10 @@ rule Typing:
     shadow: "minimal"
     shell:
         """
-        nextclade \
-            -i {input.fasta} \
-            -c {output.nextc} \
-            -r {input.ref} \
-            -a {input.tree} \
-            -q {input.qc} \
-            -j {threads} > {log} 2>&1
+        nextclade run \
+            --input-dataset '{input.nc_dataset}' \
+            --input-fasta '{input.fasta}' \
+            --output-csv '{output.nextc}' > {log} 2>&1
         pangolin \
             {input.fasta} \
             -o {params.pango_dir} \
