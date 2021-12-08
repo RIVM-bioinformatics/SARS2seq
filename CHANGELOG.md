@@ -1,5 +1,14 @@
 # Changelog
 
+### [0.4.2](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.4.1...v0.4.2) (2021-12-08)
+
+
+### Dependencies
+
+* remove manual installation of pango-designations repo ([5527d53](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/5527d53f554203c5ac59d45df124247ab6eb5396))
+* update AmpliGone to version 0.3.3 ([b97a32e](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/b97a32ea64054d1581761a9c0e82d0f31b89039e))
+* update nextclade typingtool to version 1.6.0 ([303d4d9](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/303d4d9ebc7a6fff966ef4f7a4bd1c1a130c84f8))
+
 ### [0.4.1](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.4.0...v0.4.1) (2021-11-26)
 
 
