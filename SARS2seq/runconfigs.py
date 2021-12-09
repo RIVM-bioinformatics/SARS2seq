@@ -4,11 +4,10 @@
 Construct and write configuration files for SnakeMake
 """
 
+import multiprocessing
 import os
 
 import yaml
-
-import multiprocessing
 
 
 def set_cores(cores):
@@ -19,6 +18,11 @@ def set_cores(cores):
         return available - 2
     if cores < available:
         return cores
+
+
+def get_max_local_mem():
+    avl_mem_bytes = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    return int(round(avl_mem_bytes / (1024.0 ** 2) - 2000, -3))
 
 
 def SnakemakeConfig(conf, cpus, dryrun):
@@ -37,13 +41,14 @@ def SnakemakeConfig(conf, cpus, dryrun):
     if compmode == "grid":
         queuename = conf["COMPUTING"]["queuename"]
         threads = "{threads}"
+        mem = "{resources.mem_mb}"
         config = {
             "cores": 300,
             "latency-wait": 60,
             "use-conda": True,
             "dryrun": dryrun,
             "jobname": "SARS2seq_{name}.jobid{jobid}",
-            "drmaa": f' -q {queuename} -n {threads} -R "span[hosts=1]"',
+            "drmaa": f' -q {queuename} -n {threads} -R "span[hosts=1]" -M {mem}',
             "drmaa-log-dir": "logs/drmaa",
         }
 
@@ -63,6 +68,8 @@ def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
     params = {
         "sample_sheet": samplesheet,
         "reference_file": "Built-in: MN908947.3",
+        "computing_execution": conf["COMPUTING"]["compmode"],
+        "max_local_mem": get_max_local_mem(),
         "primer_file": prim,
         "platform": platform,
         "amplicon_type": amplicon,

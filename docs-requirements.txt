@@ -1,0 +1,4 @@
+# This file is only used for requirements of the documentation site
+# please do not use this requirements.txt file for installation of SARS2seq
+mkdocs
+mkdocs-cluster
