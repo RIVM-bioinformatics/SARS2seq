@@ -16,8 +16,8 @@ dependencies:
   - minimap2==2.24
   - mappy==2.24
   - samtools==1.14
-  - biopython==1.78
-  - bedtools==2.29.2
+  - biopython==1.79
+  - bedtools==2.30.0
   - openjdk==11.0.8
   - fastqc==0.11.8
   - fastp==0.23.2
