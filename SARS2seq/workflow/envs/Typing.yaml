@@ -11,5 +11,5 @@ dependencies:
   - pangolin>=3.0
   - nextclade==1.6.0
   - snakemake==6.4.1
-  - pandas>=1.2.3
+  - pandas==1.3.5
   - usher
