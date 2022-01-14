@@ -204,14 +204,15 @@ def primerframes(input):
 
     if data.empty:
         return None
-    
+
     l, r = split_frames(data)
-    l['name'] = l['name'].apply(remove_keyword)
-    r['name'] = r['name'].apply(remove_keyword)
-    
+    l["name"] = l["name"].apply(remove_keyword)
+    r["name"] = r["name"].apply(remove_keyword)
+
     ll = remove_alt_primer_l(remove_alt_keyword(l))
     rr = remove_alt_primer_r(remove_alt_keyword(r))
     return ll, rr
+
 
 if __name__ == "__main__":
     flags = GetArgs(sys.argv[1:])
