@@ -199,33 +199,46 @@ def ReadPrimers(f):
     return pd.read_csv(f)
 
 
+def primerframes(input):
+    data = ReadPrimers(input)
+
+    if data.empty:
+        return None
+    
+    l, r = split_frames(data)
+    l['name'] = l['name'].apply(remove_keyword)
+    r['name'] = r['name'].apply(remove_keyword)
+    
+    ll = remove_alt_primer_l(remove_alt_keyword(l))
+    rr = remove_alt_primer_r(remove_alt_keyword(r))
+    return ll, rr
+
 if __name__ == "__main__":
     flags = GetArgs(sys.argv[1:])
 
-    left, right = split_frames(ReadPrimers(flags.primers))
+    primers = primerframes(flags.primers)
+    indx = ReadIndex(flags.index)
+    if primers is None:
+        data = pd.DataFrame(columns=list(indx.columns))
+    else:
+        left, right = primers
 
-    left["name"] = left["name"].apply(remove_keyword)
-    right["name"] = right["name"].apply(remove_keyword)
-
-    left = remove_alt_primer_l(remove_alt_keyword(left))
-    right = remove_alt_primer_r(remove_alt_keyword(right))
-
-    data = FilterIndex(
-        ReadIndex(flags.index),
-        GetOverlapCoords(
-            FindUniqueCoords(
-                pd.merge(left, right, on="name", how="inner")
-                .rename(
-                    columns={
-                        "start_x": "leftstart",
-                        "stop_x": "leftstop",
-                        "start_y": "rightstart",
-                        "stop_y": "rightstop",
-                    }
+        data = FilterIndex(
+            indx,
+            GetOverlapCoords(
+                FindUniqueCoords(
+                    pd.merge(left, right, on="name", how="inner")
+                    .rename(
+                        columns={
+                            "start_x": "leftstart",
+                            "stop_x": "leftstop",
+                            "start_y": "rightstart",
+                            "stop_y": "rightstop",
+                        }
+                    )
+                    .drop_duplicates(subset="name")
                 )
-                .drop_duplicates(subset="name")
-            )
-        ),
-    )
+            ),
+        )
 
     data.to_csv(flags.output, sep=",", index=True, compression="gzip")
