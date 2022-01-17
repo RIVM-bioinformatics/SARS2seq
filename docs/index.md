@@ -69,8 +69,8 @@ Please make sure the fasta headers for your primers are formatted in the followi
 
 `>{primer-name}_{primer-number}_{orientation}`
 
-Orientation keywords for forward primers are: LEFT/PLUS/POSITIVE  
-Orientation keywords for reverse primers are: RIGHT/MINUS/NEGATIVE  
+Orientation keywords for forward primers are: LEFT/PLUS/POSITIVE/FORWARD  
+Orientation keywords for reverse primers are: RIGHT/MINUS/NEGATIVE/REVERSE  
 
 Below is an example of formatted primer names from the [ArticV3](https://github.com/artic-network/artic-ncov2019/tree/master/primer_schemes/nCoV-2019/V3) sequencing protocol:
 
