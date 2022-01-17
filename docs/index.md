@@ -25,8 +25,9 @@ SARS2seq is able to run both on a standalone (linux) computer, as well as High-P
 
 ### Download
 Use the following command to download the latest release of SARS2seq and move to the newly downloaded `SARS2seq/` directory:
+
 ```bash
-git clone https://github.com/RIVM-bioinformatics/SARS2seq.git; cd SARS2seq
+git clone https://github.com/RIVM-bioinformatics/SARS2seq.git; cd SARS2seq; git checkout tags/$(git tag --sort=committerdate | tail -1) >> /dev/null
 ```
 
 ### Installation
@@ -35,7 +36,7 @@ git clone https://github.com/RIVM-bioinformatics/SARS2seq.git; cd SARS2seq
 1. Create the required conda-environment and install the necessary dependencies.  
     Copy and paste the code-snippet below in order to create the new conda-environment and directly activate it.  
     
-    `conda create --name SARS2seq -c conda-forge mamba python=3.7; conda activate SARS2seq; mamba env update -f mamba-env.yaml`
+    `conda create --name SARS2seq -c conda-forge mamba python=3.7 -y; conda activate SARS2seq; mamba env update -f mamba-env.yaml`
 
     You can also use the following snippet if the code-snippet above didn't work for you:  
     `conda env create -f env.yml && conda activate SARS2seq`  
@@ -141,7 +142,8 @@ If your protocol does not use primers then set "NONE" for the primers flag with:
 
 The `--amplicon-type` flag is used to clarify the length of of the sequenced read in regards to the amplicon.  
 "end-to-end" means that the sequenced read covers the full length of the amplicon, meaning that the primer-sequence is present at both ends of a read.
-"end-to-mid" means that the sequenced read *partially* covers the length of the amplicon, meaning that the primer-sequence is present at only one end of a read.
+"end-to-mid" means that the sequenced read *partially* covers the length of the amplicon, meaning that the primer-sequence is present at only one end of a read.  
+Please see [this link](https://rivm-bioinformatics.github.io/AmpliGone/latest/amplicon-types/) for a more detailed explanation of the terminology.  
 
 Please check your sequencing and laboratory setup to ensure the best results.
 
