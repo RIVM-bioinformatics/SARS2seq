@@ -2,7 +2,7 @@
 
 [![CodeFactor](https://www.codefactor.io/repository/github/rivm-bioinformatics/sars2seq/badge)](https://www.codefactor.io/repository/github/rivm-bioinformatics/sars2seq)
 ![GitHub top language](https://img.shields.io/github/languages/top/RIVM-bioinformatics/SARS2seq)
-![Snakemake](https://img.shields.io/badge/snakemake-6.4.1-brightgreen.svg?style=flat-square)
+![Snakemake](https://img.shields.io/badge/snakemake-6.13.1-brightgreen.svg?style=flat-square)
 
 ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/RIVM-bioinformatics/SARS2seq?include_prereleases)
 ![GitHub](https://img.shields.io/github/license/RIVM-bioinformatics/SARS2seq)
