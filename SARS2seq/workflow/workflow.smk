@@ -40,23 +40,41 @@ def high_memory_job(wildcards, threads, attempt):
         return min(attempt * threads * 4 * 1000, config['max_local_mem'])
     return attempt * threads * 4 * 1000
 
-rule all:
-    input:
-        f"{res}multiqc.html",
-        expand("{p}concat_cov_ge_{cov}.fasta",
-            p = res + seqs,
-            cov = mincoverages),
-        expand("{p}concat_mutations_cov_ge_{cov}.tsv",
-            p = res + muts,
-            cov = mincoverages),
-        f"{res}Width_of_coverage.tsv",
-        f"{res}Typing_results.tsv",
-        f"{res}Amplicon_coverage.csv",
-        f"{res}" + "annotation_check.txt",
-        expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
-            p = res + amino,
-            cov = mincoverages,
-            o = orfs)
+if config["primer_file"] == "NONE":
+    rule all:
+        input:
+            f"{res}multiqc.html",
+            expand("{p}concat_cov_ge_{cov}.fasta",
+                p = res + seqs,
+                cov = mincoverages),
+            expand("{p}concat_mutations_cov_ge_{cov}.tsv",
+                p = res + muts,
+                cov = mincoverages),
+            f"{res}Width_of_coverage.tsv",
+            f"{res}Typing_results.tsv",
+            f"{res}" + "annotation_check.txt",
+            expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
+                p = res + amino,
+                cov = mincoverages,
+                o = orfs)
+else:
+    rule all:
+        input:
+            f"{res}multiqc.html",
+            expand("{p}concat_cov_ge_{cov}.fasta",
+                p = res + seqs,
+                cov = mincoverages),
+            expand("{p}concat_mutations_cov_ge_{cov}.tsv",
+                p = res + muts,
+                cov = mincoverages),
+            f"{res}Width_of_coverage.tsv",
+            f"{res}Typing_results.tsv",
+            f"{res}Amplicon_coverage.csv",
+            f"{res}" + "annotation_check.txt",
+            expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
+                p = res + amino,
+                cov = mincoverages,
+                o = orfs)
 
 rule Prepare_ref_and_primers:
     input:
@@ -395,13 +413,15 @@ if config["primer_file"] == "NONE":
     rule RemovePrimers:
         input: rules.QC_filter.output.fq
         output:
-            fq = f"{datadir + cln + prdir}" + "{sample}.fastq"
+            fq = f"{datadir + cln + prdir}" + "{sample}.fastq",
+            ep = f"{datadir + prim}" + "{sample}_removedprimers.csv"
         threads: 1
         resources:
             mem_mb = low_memory_job
         shell:
             """
             cp {input} {output.fq}
+            echo "name,start,stop" > {output.ep}
             """
 
 rule Index_RawAlignment:
@@ -862,14 +882,6 @@ if config["primer_file"] != "NONE":
             """
             python {params.script} --output {output} --input {input}
             """
-
-if config["primer_file"] == "NONE":
-    rule Make_cov_file:
-        output: touch(f"{res}Amplicon_coverage.csv")
-        threads: 1
-        resources:
-            mem_mb = low_memory_job
-        shell: "sleep 1"
 
 if config['platform'] == "illumina":
     rule MultiQC_report:
