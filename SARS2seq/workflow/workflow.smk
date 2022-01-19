@@ -1129,7 +1129,7 @@ onsuccess:
     print("""
     SARS2seq is finished with processing all the files in the given input directory.
 
-    Generating a HTML report and shutting down...
+    Generating reports and shutting down...
     """)
     return True
 
