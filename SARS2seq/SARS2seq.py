@@ -14,10 +14,9 @@ import sys
 import snakemake
 import yaml
 
-from .runreport import WriteReport
-
 from .functions import MyHelpFormatter, color
 from .runconfigs import LoadConf, WriteConfigs
+from .runreport import WriteReport
 from .samplesheet import WriteSampleSheet
 from .update import update
 from .userprofile import ReadConfig
@@ -296,13 +295,21 @@ Please check the primer fasta and try again. Exiting...
             configfiles=[snakeparams],
             quiet=True,
         )
-        
+
     if status is False:
         workflow_state = "Failed"
     else:
         workflow_state = "Success"
 
-    WriteReport(workdir, inpath, start_path, conf, LoadConf(snakeparams), LoadConf(snakeconfig), workflow_state)
+    WriteReport(
+        workdir,
+        inpath,
+        start_path,
+        conf,
+        LoadConf(snakeparams),
+        LoadConf(snakeconfig),
+        workflow_state,
+    )
 
     if status is True:
         exit(0)
