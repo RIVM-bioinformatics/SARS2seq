@@ -300,16 +300,14 @@ Please check the primer fasta and try again. Exiting...
         workflow_state = "Failed"
     else:
         workflow_state = "Success"
-    
 
-    if status is True and parsedconfig['dryrun'] is False:
-            # Check the typingtools versions/tags
+    if status is True and parsedconfig["dryrun"] is False:
+        # Check the typingtools versions/tags
         with open(f"{outpath}/data/nextclade.tag", "r") as f:
             nxc_tag = f.read()
         with open(f"{outpath}/data/nextclade.version", "r") as f:
             nxc_version = f.read()
         with open(f"{outpath}/data/pango.tags", "r") as f:
-            #print(f.read())
             pangolin_tags = yaml.load(f, Loader=yaml.BaseLoader)
         # remove tag files
         os.remove(f"{outpath}/data/nextclade.version")

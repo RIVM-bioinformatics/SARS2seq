@@ -96,17 +96,35 @@ def WriteReport(workingdir, inpath, startpath, conf, sparams, sconfig, status, t
     pdf = analysis_details(pdf, "Local available threads:", str(sconfig["cores"]))
 
     pdf.ln(10)
-    
-    if sconfig['dryrun'] is False:
+
+    if sconfig["dryrun"] is False:
         pdf = analysis_details(pdf, "Nextclade version:", nxc_version)
         pdf = analysis_details(pdf, "\t\t\t\tNextclade dataset tag:", nxc_tag)
         pdf.ln(5)
-        pdf = analysis_details(pdf, "Pangolin version:", pangolin_tags['pangolin'].lstrip('v'))
-        pdf = analysis_details(pdf, "\t\t\t\tScorpio version:", pangolin_tags['scorpio'].lstrip('v'))
-        pdf = analysis_details(pdf, "\t\t\t\tPangoLEARN version:", pangolin_tags['pangolearn'].lstrip('v'))
-        pdf = analysis_details(pdf, "\t\t\t\tPango-designation:", pangolin_tags['pango-designation used by pangoLEARN/Usher'].lstrip('v'))
-        pdf = analysis_details(pdf, "\t\t\t\tDesignation-aliases:", pangolin_tags['pango-designation aliases'].lstrip('v'))
-        pdf = analysis_details(pdf, "\t\t\t\tPango-constellations:", pangolin_tags['constellations'].lstrip('v'))
+        pdf = analysis_details(
+            pdf, "Pangolin version:", pangolin_tags["pangolin"].lstrip("v")
+        )
+        pdf = analysis_details(
+            pdf, "\t\t\t\tScorpio version:", pangolin_tags["scorpio"].lstrip("v")
+        )
+        pdf = analysis_details(
+            pdf, "\t\t\t\tPangoLEARN version:", pangolin_tags["pangolearn"].lstrip("v")
+        )
+        pdf = analysis_details(
+            pdf,
+            "\t\t\t\tPango-designation:",
+            pangolin_tags["pango-designation used by pangoLEARN/Usher"].lstrip("v"),
+        )
+        pdf = analysis_details(
+            pdf,
+            "\t\t\t\tDesignation-aliases:",
+            pangolin_tags["pango-designation aliases"].lstrip("v"),
+        )
+        pdf = analysis_details(
+            pdf,
+            "\t\t\t\tPango-constellations:",
+            pangolin_tags["constellations"].lstrip("v"),
+        )
         pdf.ln(10)
 
     pdf = analysis_details(pdf, "Issued Command:", "")
