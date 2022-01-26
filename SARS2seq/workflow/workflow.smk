@@ -1,8 +1,9 @@
-#### test
+
 import pprint
 import os
 import yaml
 import sys
+import json
 from directories import *
 import snakemake
 snakemake.utils.min_version("6.0")
@@ -56,7 +57,10 @@ if config["primer_file"] == "NONE":
             expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
                 p = res + amino,
                 cov = mincoverages,
-                o = orfs)
+                o = orfs),
+            f"{datadir}nextclade.tag",
+            f"{datadir}nextclade.version",
+            f"{datadir}" + "pango.tags"
 else:
     rule all:
         input:
@@ -74,7 +78,10 @@ else:
             expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
                 p = res + amino,
                 cov = mincoverages,
-                o = orfs)
+                o = orfs),
+            f"{datadir}nextclade.tag",
+            f"{datadir}nextclade.version",
+            f"{datadir}" + "pango.tags"
 
 rule Prepare_ref_and_primers:
     input:
@@ -953,11 +960,9 @@ if config['platform'] == "nanopore" or config['platform'] == "iontorrent":
             multiqc -d --force --config {params.conffile} -o {params.outdir} -n multiqc.html {input} > {log} 2>&1
             """
 
-rule Catch_typing_versions:
+rule update_typingtools:
     output:
-        pangolin = temp(f"{datadir}" + "pangolin.version"),
-        nextclade= temp(f"{datadir}" + "nextclade.version"),
-        nxc_dataset= temp(directory(f"{datadir + fls}"))
+        nxc_dataset = temp(directory(f"{datadir + fls}"))
     conda:
         f"{conda_envs}Typing.yaml"
     threads: 1
@@ -968,8 +973,38 @@ rule Catch_typing_versions:
         """
         pangolin --update
         nextclade dataset get --name='sars-cov-2' --output-dir='{output.nxc_dataset}'
+        """
+
+def _get_tag(w):
+    import json
+    if config['dryrun'] is True:
+        return None
+    w = f'{rules.update_typingtools.output.nxc_dataset}/tag.json'
+    with open(w) as f:
+        a = json.load(f)
+    return a['tag']
+
+rule Catch_typing_versions:
+    input: rules.update_typingtools.output.nxc_dataset
+    output:
+        pangolin = temp(f"{datadir}" + "pangolin.version"),
+        nextclade= f"{datadir}" + "nextclade.version",
+        nx_tag = f"{datadir}" + "nextclade.tag",
+        pango_metadata_versions = f"{datadir}" + "pango.tags"
+    conda:
+        f"{conda_envs}Typing.yaml"
+    threads: 1
+    resources:
+        mem_mb = low_memory_job
+    shadow: "minimal"
+    params:
+        nx_tag = _get_tag
+    shell:
+        """
         pangolin -v > {output.pangolin}
+        pangolin --all-versions > {output.pango_metadata_versions}
         nextclade --version > {output.nextclade}
+        echo {params.nx_tag} > {output.nx_tag}
         """
 
 rule Typing:
@@ -978,7 +1013,7 @@ rule Typing:
         ref = rules.Prepare_ref_and_primers.output.ref,
         pv = f"{datadir}" + "pangolin.version",
         nc = f"{datadir}" + "nextclade.version",
-        nc_dataset = rules.Catch_typing_versions.output.nxc_dataset
+        nc_dataset = rules.update_typingtools.output.nxc_dataset
     output:
         pango = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_pangolin.csv"),
         nextc = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv"),

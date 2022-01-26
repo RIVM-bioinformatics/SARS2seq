@@ -267,7 +267,7 @@ Please check the primer fasta and try again. Exiting...
             jobname=parsedconfig["jobname"],
             latency_wait=parsedconfig["latency-wait"],
             dryrun=parsedconfig["dryrun"],
-            configfiles=[snakeparams],
+            configfiles=[snakeparams, snakeconfig],
             restart_times=3,
         )
     if conf["COMPUTING"]["compmode"] == "grid":
@@ -283,7 +283,7 @@ Please check the primer fasta and try again. Exiting...
             drmaa=parsedconfig["drmaa"],
             drmaa_log_dir=parsedconfig["drmaa-log-dir"],
             dryrun=parsedconfig["dryrun"],
-            configfiles=[snakeparams],
+            configfiles=[snakeparams, snakeconfig],
             restart_times=3,
         )
 
@@ -300,6 +300,23 @@ Please check the primer fasta and try again. Exiting...
         workflow_state = "Failed"
     else:
         workflow_state = "Success"
+    
+
+    if status is True and parsedconfig['dryrun'] is False:
+            # Check the typingtools versions/tags
+        with open(f"{outpath}/data/nextclade.tag", "r") as f:
+            nxc_tag = f.read()
+        with open(f"{outpath}/data/nextclade.version", "r") as f:
+            nxc_version = f.read()
+        with open(f"{outpath}/data/pango.tags", "r") as f:
+            #print(f.read())
+            pangolin_tags = yaml.load(f, Loader=yaml.BaseLoader)
+        # remove tag files
+        os.remove(f"{outpath}/data/nextclade.version")
+        os.remove(f"{outpath}/data/nextclade.tag")
+        os.remove(f"{outpath}/data/pango.tags")
+    else:
+        nxc_tag = nxc_version = pangolin_tags = None
 
     WriteReport(
         workdir,
@@ -309,6 +326,7 @@ Please check the primer fasta and try again. Exiting...
         LoadConf(snakeparams),
         LoadConf(snakeconfig),
         workflow_state,
+        (nxc_tag, nxc_version, pangolin_tags),
     )
 
     if status is True:
