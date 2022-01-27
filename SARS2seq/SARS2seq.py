@@ -15,7 +15,8 @@ import snakemake
 import yaml
 
 from .functions import MyHelpFormatter, color
-from .runconfigs import WriteConfigs
+from .runconfigs import LoadConf, WriteConfigs
+from .runreport import WriteReport
 from .samplesheet import WriteSampleSheet
 from .update import update
 from .userprofile import ReadConfig
@@ -192,6 +193,7 @@ def main():
         update(sys.argv, conf)
 
     inpath = os.path.abspath(flags.input)
+    start_path = os.getcwd()
     # refpath = os.path.abspath(flags.reference)
     if flags.primers != "NONE":
         primpath = os.path.abspath(flags.primers)
@@ -199,9 +201,9 @@ def main():
         primpath = "NONE"
     outpath = os.path.abspath(flags.output)
 
-    here = os.path.abspath(os.path.dirname(__file__))
+    exec_folder = os.path.abspath(os.path.dirname(__file__))
 
-    Snakefile = os.path.join(here, "workflow", "workflow.smk")
+    Snakefile = os.path.join(exec_folder, "workflow", "workflow.smk")
 
     ##@ check if the input directory contains valid files
     if CheckInputFiles(inpath) is False:
@@ -253,11 +255,10 @@ Please check the primer fasta and try again. Exiting...
         flags.dryrun,
     )
 
-    openedconfig = open(snakeconfig)
-    parsedconfig = yaml.safe_load(openedconfig)
+    parsedconfig = LoadConf(snakeconfig)
 
     if conf["COMPUTING"]["compmode"] == "local":
-        snakemake.snakemake(
+        status = snakemake.snakemake(
             Snakefile,
             workdir=workdir,
             cores=parsedconfig["cores"],
@@ -266,11 +267,11 @@ Please check the primer fasta and try again. Exiting...
             jobname=parsedconfig["jobname"],
             latency_wait=parsedconfig["latency-wait"],
             dryrun=parsedconfig["dryrun"],
-            configfiles=[snakeparams],
+            configfiles=[snakeparams, snakeconfig],
             restart_times=3,
         )
     if conf["COMPUTING"]["compmode"] == "grid":
-        snakemake.snakemake(
+        status = snakemake.snakemake(
             Snakefile,
             workdir=workdir,
             cores=parsedconfig["cores"],
@@ -282,11 +283,11 @@ Please check the primer fasta and try again. Exiting...
             drmaa=parsedconfig["drmaa"],
             drmaa_log_dir=parsedconfig["drmaa-log-dir"],
             dryrun=parsedconfig["dryrun"],
-            configfiles=[snakeparams],
+            configfiles=[snakeparams, snakeconfig],
             restart_times=3,
         )
 
-    if parsedconfig["dryrun"] is False:
+    if parsedconfig["dryrun"] is False and status is True:
         snakemake.snakemake(
             Snakefile,
             workdir=workdir,
@@ -294,3 +295,39 @@ Please check the primer fasta and try again. Exiting...
             configfiles=[snakeparams],
             quiet=True,
         )
+
+    if status is False:
+        workflow_state = "Failed"
+    else:
+        workflow_state = "Success"
+
+    if status is True and parsedconfig["dryrun"] is False:
+        # Check the typingtools versions/tags
+        with open(f"{outpath}/data/nextclade.tag", "r") as f:
+            nxc_tag = f.read()
+        with open(f"{outpath}/data/nextclade.version", "r") as f:
+            nxc_version = f.read()
+        with open(f"{outpath}/data/pango.tags", "r") as f:
+            pangolin_tags = yaml.load(f, Loader=yaml.BaseLoader)
+        # remove tag files
+        os.remove(f"{outpath}/data/nextclade.version")
+        os.remove(f"{outpath}/data/nextclade.tag")
+        os.remove(f"{outpath}/data/pango.tags")
+    else:
+        nxc_tag = nxc_version = pangolin_tags = None
+
+    WriteReport(
+        workdir,
+        inpath,
+        start_path,
+        conf,
+        LoadConf(snakeparams),
+        LoadConf(snakeconfig),
+        workflow_state,
+        (nxc_tag, nxc_version, pangolin_tags),
+    )
+
+    if status is True:
+        exit(0)
+    else:
+        exit(1)

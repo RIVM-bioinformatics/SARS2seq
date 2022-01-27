@@ -1,8 +1,9 @@
-#### test
+
 import pprint
 import os
 import yaml
 import sys
+import json
 from directories import *
 import snakemake
 snakemake.utils.min_version("6.0")
@@ -12,7 +13,7 @@ shell.executable("/bin/bash")
 
 SAMPLES = {}
 with open(config["sample_sheet"]) as sample_sheet_file:
-    SAMPLES = yaml.load(sample_sheet_file)
+    SAMPLES = yaml.safe_load(sample_sheet_file)
 
 primerfile = config["primer_file"]
 
@@ -40,23 +41,47 @@ def high_memory_job(wildcards, threads, attempt):
         return min(attempt * threads * 4 * 1000, config['max_local_mem'])
     return attempt * threads * 4 * 1000
 
-rule all:
-    input:
-        f"{res}multiqc.html",
-        expand("{p}concat_cov_ge_{cov}.fasta",
-            p = res + seqs,
-            cov = mincoverages),
-        expand("{p}concat_mutations_cov_ge_{cov}.tsv",
-            p = res + muts,
-            cov = mincoverages),
-        f"{res}Width_of_coverage.tsv",
-        f"{res}Typing_results.tsv",
-        f"{res}Amplicon_coverage.csv",
-        f"{res}" + "annotation_check.txt",
-        expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
-            p = res + amino,
-            cov = mincoverages,
-            o = orfs)
+if config["primer_file"] == "NONE":
+    rule all:
+        input:
+            f"{res}multiqc.html",
+            expand("{p}concat_cov_ge_{cov}.fasta",
+                p = res + seqs,
+                cov = mincoverages),
+            expand("{p}concat_mutations_cov_ge_{cov}.tsv",
+                p = res + muts,
+                cov = mincoverages),
+            f"{res}Width_of_coverage.tsv",
+            f"{res}Typing_results.tsv",
+            f"{res}" + "annotation_check.txt",
+            expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
+                p = res + amino,
+                cov = mincoverages,
+                o = orfs),
+            f"{datadir}nextclade.tag",
+            f"{datadir}nextclade.version",
+            f"{datadir}" + "pango.tags"
+else:
+    rule all:
+        input:
+            f"{res}multiqc.html",
+            expand("{p}concat_cov_ge_{cov}.fasta",
+                p = res + seqs,
+                cov = mincoverages),
+            expand("{p}concat_mutations_cov_ge_{cov}.tsv",
+                p = res + muts,
+                cov = mincoverages),
+            f"{res}Width_of_coverage.tsv",
+            f"{res}Typing_results.tsv",
+            f"{res}Amplicon_coverage.csv",
+            f"{res}" + "annotation_check.txt",
+            expand("{p}coverage_{cov}/concat_ORF-{o}.fa",
+                p = res + amino,
+                cov = mincoverages,
+                o = orfs),
+            f"{datadir}nextclade.tag",
+            f"{datadir}nextclade.version",
+            f"{datadir}" + "pango.tags"
 
 rule Prepare_ref_and_primers:
     input:
@@ -265,8 +290,11 @@ if config["platform"] == "nanopore":
         shell:
             """
             fastp --thread {threads} -i {input} \
-            --cut_right -M {params.score} -W {params.size} -l {params.length} \
-            -o {output.fq} -h {output.html} -j {output.json} > {log} 2>&1
+            -A -Q --cut_right \
+            --cut_right_mean_quality {params.score} \
+            --cut_right_window_size {params.size} \
+            -l {params.length} -o {output.fq} \
+            -h {output.html} -j {output.json} > {log} 2>&1
             """
 
 if config["platform"] == "iontorrent":
@@ -395,13 +423,15 @@ if config["primer_file"] == "NONE":
     rule RemovePrimers:
         input: rules.QC_filter.output.fq
         output:
-            fq = f"{datadir + cln + prdir}" + "{sample}.fastq"
+            fq = f"{datadir + cln + prdir}" + "{sample}.fastq",
+            ep = f"{datadir + prim}" + "{sample}_removedprimers.csv"
         threads: 1
         resources:
             mem_mb = low_memory_job
         shell:
             """
             cp {input} {output.fq}
+            echo "name,start,stop" > {output.ep}
             """
 
 rule Index_RawAlignment:
@@ -863,14 +893,6 @@ if config["primer_file"] != "NONE":
             python {params.script} --output {output} --input {input}
             """
 
-if config["primer_file"] == "NONE":
-    rule Make_cov_file:
-        output: touch(f"{res}Amplicon_coverage.csv")
-        threads: 1
-        resources:
-            mem_mb = low_memory_job
-        shell: "sleep 1"
-
 if config['platform'] == "illumina":
     rule MultiQC_report:
         input:
@@ -938,11 +960,9 @@ if config['platform'] == "nanopore" or config['platform'] == "iontorrent":
             multiqc -d --force --config {params.conffile} -o {params.outdir} -n multiqc.html {input} > {log} 2>&1
             """
 
-rule Catch_typing_versions:
+rule update_typingtools:
     output:
-        pangolin = temp(f"{datadir}" + "pangolin.version"),
-        nextclade= temp(f"{datadir}" + "nextclade.version"),
-        nxc_dataset= temp(directory(f"{datadir + fls}"))
+        nxc_dataset = temp(directory(f"{datadir + fls}"))
     conda:
         f"{conda_envs}Typing.yaml"
     threads: 1
@@ -953,8 +973,38 @@ rule Catch_typing_versions:
         """
         pangolin --update
         nextclade dataset get --name='sars-cov-2' --output-dir='{output.nxc_dataset}'
+        """
+
+def _get_tag(w):
+    import json
+    if config['dryrun'] is True:
+        return None
+    w = f'{rules.update_typingtools.output.nxc_dataset}/tag.json'
+    with open(w) as f:
+        a = json.load(f)
+    return a['tag']
+
+rule Catch_typing_versions:
+    input: rules.update_typingtools.output.nxc_dataset
+    output:
+        pangolin = temp(f"{datadir}" + "pangolin.version"),
+        nextclade= f"{datadir}" + "nextclade.version",
+        nx_tag = f"{datadir}" + "nextclade.tag",
+        pango_metadata_versions = f"{datadir}" + "pango.tags"
+    conda:
+        f"{conda_envs}Typing.yaml"
+    threads: 1
+    resources:
+        mem_mb = low_memory_job
+    shadow: "minimal"
+    params:
+        nx_tag = _get_tag
+    shell:
+        """
         pangolin -v > {output.pangolin}
+        pangolin --all-versions > {output.pango_metadata_versions}
         nextclade --version > {output.nextclade}
+        echo {params.nx_tag} > {output.nx_tag}
         """
 
 rule Typing:
@@ -963,7 +1013,7 @@ rule Typing:
         ref = rules.Prepare_ref_and_primers.output.ref,
         pv = f"{datadir}" + "pangolin.version",
         nc = f"{datadir}" + "nextclade.version",
-        nc_dataset = rules.Catch_typing_versions.output.nxc_dataset
+        nc_dataset = rules.update_typingtools.output.nxc_dataset
     output:
         pango = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_pangolin.csv"),
         nextc = temp(f"{datadir + cons + tbl}" + "{sample}_{cov}_nextclade.csv"),
@@ -1114,11 +1164,13 @@ onsuccess:
     print("""
     SARS2seq is finished with processing all the files in the given input directory.
 
-    Generating a HTML report and shutting down...
+    Generating reports and shutting down...
     """)
+    return True
 
 onerror:
     print("""
     An error occurred and SARS2seq had to shut down.
     Please check the input and logfiles for any abnormalities and try again.
     """)
+    return False
