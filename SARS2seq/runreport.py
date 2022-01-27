@@ -93,7 +93,7 @@ def WriteReport(workingdir, inpath, startpath, conf, sparams, sconfig, status, t
         pdf = analysis_details(
             pdf, "Selected Grid Queue:", conf["COMPUTING"]["queuename"]
         )
-    pdf = analysis_details(pdf, "Local available threads:", str(sconfig["cores"]))
+    pdf = analysis_details(pdf, "Available threads:", str(sconfig["cores"]))
 
     pdf.ln(10)
 
