@@ -1,5 +1,59 @@
 # Changelog
 
+## [0.5.0](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.4.2...v0.5.0) (2022-01-27)
+
+
+### Features
+
+* Write a short report with used/configured settings of the analysis ([ffe3141](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/ffe3141c2b3af151a108a2d768584e6d30cc1557))
+
+
+### Bug Fixes
+
+* properly exit with right exit codes ([4ec6307](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/4ec630723960f41f47c53e668d89f0f8a2cf1f8f))
+* sucessfully finish an analysis when no primers are given ([4916731](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/491673192ea83293fb2fe639e833e7d712ea311e))
+
+
+### Performance Improvements
+
+* tweak read qc filtering settings ([27916d4](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/27916d4a9dc6be9b402223eed36654886b55b541))
+
+
+### Dependencies
+
+* add FPDF version 1.7.2 to dependency list(s) ([1a192ec](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/1a192ecc146bd2d6eb1f07c0ea3f12331a042cf1))
+* add urllib3 to dependency list for the auto-updater ([f3b9b53](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/f3b9b536228dd077a77e56d414b394c161ece147))
+* include conda (lenient) version 4.11.x in main environment to circumvent python3.10 bug ([a7821f4](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/a7821f463dd6157bea2e109f17cab9002cd138e1))
+* remove pysamstats from 'clean' environment ([485c94e](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/485c94ed732057a572f6a3e631aa5618f286e9cf))
+* update (pangolin) snakemake 6.4.1 --> 6.8.0 ([1ffc79d](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/1ffc79dbb1669cf5df06b997ba28786690e9bde3))
+* update AmpliGone version v0.3.3 --> v0.4.0 ([999b757](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/999b757518e40d6ea10fbd31ef35d7da81ff8772))
+* update bcftools 1.12 --> 1.14 ([9108076](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/91080763fdfb65d4bb90372c7cef7d8302606f7b))
+* update bedtools 2.29.2 --> 2.30.0 ([9108076](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/91080763fdfb65d4bb90372c7cef7d8302606f7b))
+* update biopython 1.78 --> 1.79 ([9108076](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/91080763fdfb65d4bb90372c7cef7d8302606f7b))
+* update biopython to version 1.79 in main environment ([43251f0](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/43251f09945d78cd3a7952d24256e8c703a915f9))
+* update FastP to version 0.23.2 ([b134b64](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/b134b64644dbdb3af93c1bba3d23d3d50660e557))
+* update fastqc 0.11.8 --> 0.11.9 ([485c94e](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/485c94ed732057a572f6a3e631aa5618f286e9cf))
+* update minimap2 & mappy 2.17 --> 2.24 ([cb99be4](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/cb99be4361fbe232be214f0c1c556e560bf76201))
+* update multiqc 1.9 --> 1.11 ([485c94e](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/485c94ed732057a572f6a3e631aa5618f286e9cf))
+* update nextclade 1.6.0 --> 1.9 + change to lenient versioning ([1ffc79d](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/1ffc79dbb1669cf5df06b997ba28786690e9bde3))
+* update nextclade lenient version v1.9.x --> v1.10.x ([2e1cf9e](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/2e1cf9ef2ef8c81bbb6219852df929a2f0fd684a))
+* update pandas 1.2.3 --> 1.3.5 ([485c94e](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/485c94ed732057a572f6a3e631aa5618f286e9cf))
+* update pangolin 3.0 --> 3.1 + change to lenient versioning ([1ffc79d](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/1ffc79dbb1669cf5df06b997ba28786690e9bde3))
+* update parmap 1.5.2 --> 1.5.3 ([485c94e](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/485c94ed732057a572f6a3e631aa5618f286e9cf))
+* update PyYaml 5.4.1 --> 6.0 and fix compatibility ([e9a1ef9](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/e9a1ef955948ec30ecb6960a69e9da7d4ef8bd27))
+* update samtools 1.10 --> 1.14 ([cb99be4](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/cb99be4361fbe232be214f0c1c556e560bf76201))
+* update seqkit 0.14.0 --> 2.1.0 ([cb99be4](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/cb99be4361fbe232be214f0c1c556e560bf76201))
+* update snakemake to version 6.13.1 in main environment ([43251f0](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/43251f09945d78cd3a7952d24256e8c703a915f9))
+* update tqdm 4.59 --> 4.62 ([485c94e](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/485c94ed732057a572f6a3e631aa5618f286e9cf))
+
+
+### Documentation
+
+* add extra primer keywords ([422f192](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/422f19238d4f91155bd9e6aafba3a8c1dd56aa6a))
+* fix typo in docs and update download instructions ([9f239e3](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/9f239e3bf778f2df103a2fc51b0343cd68261b8d))
+* update readme with correct primer-keywords ([17878f8](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/17878f84d18774e3e0408dcf13bc555b45b3171c))
+* update snakemake version label ([f1a474d](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/f1a474df2cb7556768aabd839a2d9e22910719cd))
+
 ### [0.4.2](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.4.1...v0.4.2) (2021-12-08)
 
 
