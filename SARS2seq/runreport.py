@@ -97,7 +97,7 @@ def WriteReport(workingdir, inpath, startpath, conf, sparams, sconfig, status, t
 
     pdf.ln(10)
 
-    if sconfig["dryrun"] is False:
+    if sconfig["dryrun"] is False and status != "Failed":
         pdf = analysis_details(pdf, "Nextclade version:", nxc_version)
         pdf = analysis_details(pdf, "\t\t\t\tNextclade dataset tag:", nxc_tag)
         pdf.ln(5)
