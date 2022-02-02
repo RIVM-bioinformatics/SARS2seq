@@ -1,8 +1,9 @@
-# pylint: disable=C0103
-
-
 """
-#placeholder block
+Starting point of the SARS2seq pipeline and wrapper
+
+Copyright © 2021 RIVM
+
+https://github.com/RIVM-bioinformatics/SARS2seq
 """
 
 import argparse
