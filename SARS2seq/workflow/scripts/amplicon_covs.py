@@ -1,9 +1,7 @@
 import argparse
+import sys
 
 import pandas as pd
-
-pd.set_option("display.max_rows", None, "display.max_columns", None)
-
 
 args = argparse.ArgumentParser()
 
@@ -205,7 +203,6 @@ def Average_cov(primers, covs):
         .rename(columns={0: "name", "index": "avg_cov"})
     )
     primers = pd.merge(primers, avgdf, on="name", how="inner")
-    # primers["avg_cov"] = averages
 
     return primers
 
@@ -214,7 +211,28 @@ if __name__ == "__main__":
     covs = pd.read_csv(
         flags.coverages, sep="\t", names=["position", "cov"], index_col="position"
     )
-    prims = pd.read_csv(flags.primers)
+
+    try:
+        prims = pd.read_csv(flags.primers)
+    except Exception:
+        print("Error reading primers file")
+        with open(flags.output, "w") as f:
+            f.write(
+                f"""name,
+{flags.key},
+"""
+            )
+        sys.exit()
+
+    if len(prims) <= 0:
+        print("Primers file is empty, writing output and exiting...")
+        with open(flags.output, "w") as f:
+            f.write(
+                f"""name,
+{flags.key},
+                """
+            )
+            sys.exit()
 
     lf, rf = split_frames(prims)
 
