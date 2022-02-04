@@ -1,5 +1,18 @@
 # Changelog
 
+### [0.5.1](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.0...v0.5.1) (2022-02-04)
+
+
+### Bug Fixes
+
+* finish an analysis when empty input fastq files are given ([7a30b18](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/7a30b18e1b149ac498cdd53902c9d1f2e258b1f7))
+
+
+### Dependencies
+
+* update AmpliGone 0.4.0 --> 0.4.1 ([cf64dc4](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/cf64dc459be28e0b74abd1c2207d00e950b788c9))
+* update AmpliGone 0.4.1 --> 0.4.3 ([28baf2a](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/28baf2a8becdc0e3945347a2483561fd119d728b))
+
 ## [0.5.0](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.4.2...v0.5.0) (2022-01-27)
 
 
