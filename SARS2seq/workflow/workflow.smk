@@ -559,7 +559,8 @@ rule Consensus:
         bam = rules.Alignment.output.bam,
         gff = srcdir("files/MN908947.gff"),
         ref = rules.Prepare_ref_and_primers.output.ref,
-        overrides = rules.Filter_RawAlignment_Index.output.filt
+        overrides = rules.Filter_RawAlignment_Index.output.filt,
+        override_with = rules.RemoveAdapters_p1.output.bam,
     output:
         cons_1 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_1.fa",
         cons_5 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_5.fa",
@@ -601,7 +602,7 @@ rule Consensus:
         --variants {params.vcfdir} \
         --output-gff {params.gffdir} \
         --depth-of-coverage {output.cov} \
-        --index-override {input.overrides} \
+        --index-override {input.overrides} {input.override_with} \
         --threads {threads}
         """
 
