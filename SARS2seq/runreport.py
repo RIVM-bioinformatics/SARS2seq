@@ -107,18 +107,18 @@ def WriteReport(workingdir, inpath, startpath, conf, sparams, sconfig, status, t
         pdf = analysis_details(
             pdf, "\t\t\t\tScorpio version:", pangolin_tags["scorpio"].lstrip("v")
         )
-        pdf = analysis_details(
-            pdf, "\t\t\t\tPangoLEARN version:", pangolin_tags["pangolearn"].lstrip("v")
-        )
+        #pdf = analysis_details(
+        #    pdf, "\t\t\t\tPangoLEARN version:", pangolin_tags["pangolearn"].lstrip("v")
+        #)
+        # pdf = analysis_details(
+        #     pdf,
+        #     "\t\t\t\tPango-designation:",
+        #     pangolin_tags["pango-designation used by pangoLEARN/Usher"].lstrip("v"),
+        # )
         pdf = analysis_details(
             pdf,
-            "\t\t\t\tPango-designation:",
-            pangolin_tags["pango-designation used by pangoLEARN/Usher"].lstrip("v"),
-        )
-        pdf = analysis_details(
-            pdf,
-            "\t\t\t\tDesignation-aliases:",
-            pangolin_tags["pango-designation aliases"].lstrip("v"),
+            "\t\t\t\tPangolin-data version:",
+            pangolin_tags["pangolin-data"].lstrip("v"),
         )
         pdf = analysis_details(
             pdf,
