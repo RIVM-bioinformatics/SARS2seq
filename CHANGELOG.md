@@ -1,5 +1,13 @@
 # Changelog
 
+### [0.5.2](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.1...v0.5.2) (2022-04-04)
+
+
+### Dependencies
+
+* add python3.7 to Alignment env to stabilize environment during installation ([6f1387d](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/6f1387d9a10dbbcffe9dc664b7c160187288136b))
+* change Typing rules and packages for compatibility with pangolin v4.* ([81a61d5](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/81a61d55ea320c516aaf1d6972638b22af8b3321))
+
 ### [0.5.1](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.0...v0.5.1) (2022-02-04)
 
 
