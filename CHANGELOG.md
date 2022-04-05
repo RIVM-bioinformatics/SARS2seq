@@ -1,5 +1,12 @@
 # Changelog
 
+### [0.5.3](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.2...v0.5.3) (2022-04-05)
+
+
+### Bug Fixes
+
+* allow pangolin v4 empty output when there's low coverage in the typing sequence ([3237202](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/32372022b5f35a1d4332d4ad72eabc258b5ec2ea))
+
 ### [0.5.2](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.1...v0.5.2) (2022-04-04)
 
 
