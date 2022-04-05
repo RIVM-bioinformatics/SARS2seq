@@ -6,7 +6,18 @@ import pandas as pd
 samplename, nx_vs, pn_vs, nx_typ, pn_typ, outfile = sys.argv[1:]
 
 nextclade = pd.read_csv(nx_typ, sep=";").to_dict(orient="list")
-pangolin = pd.read_csv(pn_typ, sep=",").to_dict(orient="list")
+pangolin = pd.read_csv(pn_typ, sep=",")
+
+if len(pangolin.index) < 1:
+    pangolin = {
+        'version': [None],
+        'lineage': [None],
+        'scorpio_call': [None],
+        'qc_status': [None],
+    }
+
+else:
+    pangolin = pangolin.to_dict(orient="list")
 
 now = date.today().strftime("%d-%m-%Y")
 
