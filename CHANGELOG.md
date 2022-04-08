@@ -1,5 +1,12 @@
 # Changelog
 
+### [0.5.4](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.3...v0.5.4) (2022-04-08)
+
+
+### Dependencies
+
+* pin pangolin version number to 4.0.2 without auto-updating ([27e30d3](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/27e30d34940d852993f616b04feae231751bf607))
+
 ### [0.5.3](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.2...v0.5.3) (2022-04-05)
 
 
