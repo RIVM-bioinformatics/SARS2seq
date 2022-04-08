@@ -971,8 +971,7 @@ rule update_typingtools:
     shadow: "minimal"
     shell:
         """
-        pangolin --update
-        pangolin --update
+        pangolin --update-data
         nextclade dataset get --name='sars-cov-2' --output-dir='{output.nxc_dataset}'
         """
 
