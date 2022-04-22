@@ -396,7 +396,7 @@ if config["primer_file"] != "NONE":
             ref = rules.Prepare_ref_and_primers.output.ref
         output:
             fq = f"{datadir + cln + prdir}" + "{sample}.fastq",
-            ep = f"{datadir + prim}" + "{sample}_removedprimers.csv"
+            ep = f"{datadir + prim}" + "{sample}_removedprimers.bed"
         conda:
             f"{conda_envs}Clean.yaml"
         log:
@@ -424,7 +424,7 @@ if config["primer_file"] == "NONE":
         input: rules.QC_filter.output.fq
         output:
             fq = f"{datadir + cln + prdir}" + "{sample}.fastq",
-            ep = f"{datadir + prim}" + "{sample}_removedprimers.csv"
+            ep = f"{datadir + prim}" + "{sample}_removedprimers.bed"
         threads: 1
         resources:
             mem_mb = low_memory_job
