@@ -396,7 +396,7 @@ if config["primer_file"] != "NONE":
             ref = rules.Prepare_ref_and_primers.output.ref
         output:
             fq = f"{datadir + cln + prdir}" + "{sample}.fastq",
-            ep = f"{datadir + prim}" + "{sample}_removedprimers.csv"
+            ep = f"{datadir + prim}" + "{sample}_removedprimers.bed"
         conda:
             f"{conda_envs}Clean.yaml"
         log:
@@ -424,7 +424,7 @@ if config["primer_file"] == "NONE":
         input: rules.QC_filter.output.fq
         output:
             fq = f"{datadir + cln + prdir}" + "{sample}.fastq",
-            ep = f"{datadir + prim}" + "{sample}_removedprimers.csv"
+            ep = f"{datadir + prim}" + "{sample}_removedprimers.bed"
         threads: 1
         resources:
             mem_mb = low_memory_job
@@ -591,33 +591,18 @@ rule Consensus:
         ref = rules.Prepare_ref_and_primers.output.ref,
         overrides = rules.Filter_RawAlignment_Index.output.filt
     output:
-        cons_1 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_1.fa",
-        cons_5 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_5.fa",
-        cons_10 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_10.fa",
-        cons_50 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_50.fa",
-        cons_100 = f"{datadir + cons + seqs}" + "{sample}_cov_ge_100.fa",
-        cov = f"{datadir + cons + covs}" + "{sample}_coverage.tsv",
-        vcf_1 = f"{datadir + aln + vf}" + "{sample}_cov_ge_1.vcf",
-        vcf_5 = f"{datadir + aln + vf}" + "{sample}_cov_ge_5.vcf",
-        vcf_10 = f"{datadir + aln + vf}" + "{sample}_cov_ge_10.vcf",
-        vcf_50 = f"{datadir + aln + vf}" + "{sample}_cov_ge_50.vcf",
-        vcf_100 = f"{datadir + aln + vf}" + "{sample}_cov_ge_100.vcf",
-        gff_1 = f"{datadir + cons + features}" + "{sample}_cov_ge_1.gff",
-        gff_5 = f"{datadir + cons + features}" + "{sample}_cov_ge_5.gff",
-        gff_10 = f"{datadir + cons + features}" + "{sample}_cov_ge_10.gff",
-        gff_50 = f"{datadir + cons + features}" + "{sample}_cov_ge_50.gff",
-        gff_100 = f"{datadir + cons + features}" + "{sample}_cov_ge_100.gff"
-    params:
-        mincov = "1 5 10 50 100",
-        outdir = f"{datadir + cons + seqs}",
-        vcfdir = f"{datadir + aln + vf}",
-        gffdir = f"{datadir + cons + features}"
+        cons = f"{datadir + cons + seqs}" + "{sample}_cov_ge_{cov}.fa",
+        vcf = f"{datadir + aln + vf}" + "{sample}_cov_ge_{cov}.vcf",
+        gff = f"{datadir + cons + features}" + "{sample}_cov_ge_{cov}.gff",
+        cov = f"{datadir + cons + covs}" + "{sample}_coverage_{cov}.tsv",
+    wildcard_constraints:
+        cov="\d+"
     conda:
         f"{conda_envs}Consensus.yaml"
     log:
-        f"{logdir}" + "Consensus_{sample}.log"
+        f"{logdir}" + "Consensus_{sample}_{cov}.log"
     benchmark:
-        f"{logdir + bench}" + "Consensus_{sample}.txt"
+        f"{logdir + bench}" + "Consensus_{sample}_{cov}.txt"
     threads: config['threads']['Consensus']
     resources:
         mem_mb = medium_memory_job
@@ -625,49 +610,31 @@ rule Consensus:
         """
         TrueConsense --input {input.bam} \
         --reference {input.ref} --features {input.gff} \
-        --coverage-levels {params.mincov} \
+        --coverage-level {wildcards.cov} \
         --samplename {wildcards.sample} \
-        --output {params.outdir} \
-        --variants {params.vcfdir} \
-        --output-gff {params.gffdir} \
+        --output {output.cons} \
+        --variants {output.vcf} \
+        --output-gff {output.gff} \
         --depth-of-coverage {output.cov} \
         --index-override {input.overrides} \
-        --threads {threads}
+        --threads {threads} > {log} 2>&1
         """
 
 rule Concat_Seqs:
     input:
-        cov1 =  expand( "{p}{sample}_cov_ge_1.fa",
-                    p = f"{datadir + cons + seqs}",
-                    sample = SAMPLES),
-        cov5 =  expand( "{p}{sample}_cov_ge_5.fa",
-                    p = f"{datadir + cons + seqs}",
-                    sample = SAMPLES),
-        cov10 = expand( "{p}{sample}_cov_ge_10.fa",
-                    p = f"{datadir + cons + seqs}",
-                    sample = SAMPLES),
-        cov50 = expand( "{p}{sample}_cov_ge_50.fa",
-                    p = f"{datadir + cons + seqs}",
-                    sample = SAMPLES),
-        cov100 =expand( "{p}{sample}_cov_ge_100.fa",
+        cov = expand( "{p}{sample}_cov_ge_{{cov}}.fa",
                     p = f"{datadir + cons + seqs}",
                     sample = SAMPLES),
     output:
-        cov1 = f"{res + seqs}" + "concat_cov_ge_1.fasta",
-        cov5 = f"{res + seqs}" + "concat_cov_ge_5.fasta",
-        cov10 = f"{res + seqs}" + "concat_cov_ge_10.fasta",
-        cov50 = f"{res + seqs}" + "concat_cov_ge_50.fasta",
-        cov100 = f"{res + seqs}" + "concat_cov_ge_100.fasta",
+        cov = f"{res + seqs}" + "concat_cov_ge_{cov}.fasta",
+    wildcard_constraints:
+        cov="\d+"
     threads: 1
     resources:
         mem_mb = low_memory_job
     shell:
         """
-        cat {input.cov1} >> {output.cov1}
-        cat {input.cov5} >> {output.cov5}
-        cat {input.cov10} >> {output.cov10}
-        cat {input.cov50} >> {output.cov50}
-        cat {input.cov100} >> {output.cov100}
+        cat {input.cov} >> {output.cov}
         """
 
 rule get_site_maskings:
@@ -773,59 +740,25 @@ rule VCF_to_TSV:
 
 rule Concat_TSV_coverages:
     input:
-        cov1 = expand(
-            "{p}{sample}_cov_ge_1.tsv",
+        cov = expand(
+            "{p}{sample}_cov_ge_{{cov}}.tsv",
             p = datadir + aln + vf,
             sample = SAMPLES
             ),
-        cov5 = expand(
-            "{p}{sample}_cov_ge_5.tsv",
-            p = datadir + aln + vf,
-            sample = SAMPLES
-            ),
-        cov10 = expand(
-            "{p}{sample}_cov_ge_10.tsv",
-            p = datadir + aln + vf,
-            sample = SAMPLES
-            ),
-        cov50 = expand(
-            "{p}{sample}_cov_ge_50.tsv",
-            p = datadir + aln + vf,
-            sample = SAMPLES
-            ),
-        cov100 = expand(
-            "{p}{sample}_cov_ge_100.tsv",
-            p = datadir + aln + vf,
-            sample = SAMPLES
-            )
     output:
-        cov1 = f"{res + muts}concat_mutations_cov_ge_1.tsv",
-        cov5 = f"{res + muts}concat_mutations_cov_ge_5.tsv",
-        cov10 = f"{res + muts}concat_mutations_cov_ge_10.tsv",
-        cov50 = f"{res + muts}concat_mutations_cov_ge_50.tsv",
-        cov100 = f"{res + muts}concat_mutations_cov_ge_100.tsv",
+        cov = f"{res + muts}" "concat_mutations_cov_ge_{cov}.tsv",
     threads: 1
     resources:
         mem_mb = low_memory_job
-    log:
-        f"{logdir}concat_tsv.log"
     run:
-        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov1} 2> {log}")
-        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov5} 2> {log}")
-        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov10} 2> {log}")
-        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov50} 2> {log}")
-        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov100} 2> {log}")
-        shell("cat {input.cov1} >> {output.cov1} 2>> {log}")
-        shell("cat {input.cov5} >> {output.cov5} 2>> {log}")
-        shell("cat {input.cov10} >> {output.cov10} 2>> {log}")
-        shell("cat {input.cov50} >> {output.cov50} 2>> {log}")
-        shell("cat {input.cov100} >> {output.cov100} 2>> {log}")
+        shell("echo -e 'Sample\tReference_Chromosome\tPosition\tReference\tAlternative\tDepth' > {output.cov}")
+        shell("cat {input.cov} >> {output.cov}")
 
 
 rule Get_Breadth_of_coverage:
     input:
         reference = rules.Prepare_ref_and_primers.output.ref,
-        coverage = rules.Consensus.output.cov,
+        coverage = f"{datadir + cons + covs}" + "{sample}_coverage_1.tsv",
     output:
         temp(f"{datadir + boc}" + "{sample}.tsv")
     conda:
@@ -859,7 +792,7 @@ if config["primer_file"] != "NONE":
     rule Calculate_amplicon_coverage:
         input:
             pr = rules.RemovePrimers.output.ep,
-            cov = rules.Consensus.output.cov
+            cov = f"{datadir + cons + covs}" + "{sample}_coverage_1.tsv"
         output:
             ampcov = f"{datadir + prim}" + "{sample}_ampliconcoverage.csv"
         conda:
@@ -1135,7 +1068,7 @@ for o in orfs:
             cov10 = expand("{p}/{sample}_10.fa",
                 p = f"{datadir + cons + amino + o}",
                 sample = SAMPLES),
-            cov50 = expand("{p}/{sample}_5.fa",
+            cov50 = expand("{p}/{sample}_50.fa",
                 p = f"{datadir + cons + amino + o}",
                 sample = SAMPLES),
             cov100 = expand("{p}/{sample}_100.fa",
@@ -1157,7 +1090,6 @@ for o in orfs:
             cat {input.cov10} >> {output.cov10}
             cat {input.cov50} >> {output.cov50}
             cat {input.cov100} >> {output.cov100}
-
             """
 
 onsuccess:

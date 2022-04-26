@@ -31,13 +31,13 @@ def split_frames(df):
         if any(l in x[1] for l in left) is True:
             leftdf = leftdf.append(
                 pd.DataFrame(
-                    {"name": x.name, "start": x.start, "stop": x.stop}, index=[0]
+                    {"name": x.name, "start": x.start, "end": x.end}, index=[0]
                 )
             )
         if any(r in x[1] for r in right) is True:
             rightdf = rightdf.append(
                 pd.DataFrame(
-                    {"name": x.name, "start": x.start, "stop": x.stop}, index=[0]
+                    {"name": x.name, "start": x.start, "end": x.end}, index=[0]
                 )
             )
 
@@ -80,12 +80,12 @@ def remove_alt_keyword(df):
     return df
 
 
-def index_to_remove_stops(one, indexone, two, indextwo):
-    stop_one = one.get("stop")
-    stop_two = two.get("stop")
-    if stop_one > stop_two:
+def index_to_remove_ends(one, indexone, two, indextwo):
+    end_one = one.get("end")
+    end_two = two.get("end")
+    if end_one > end_two:
         return indextwo
-    if stop_two > stop_one:
+    if end_two > end_one:
         return indexone
     return None
 
@@ -107,7 +107,7 @@ def remove_alt_primer_l(df):
     for a, x in enumerate(xx):
         if a != lastindex:
             if xx[a].get("name") == xx[a + 1].get("name"):
-                rm_indx = index_to_remove_stops(xx[a], a, xx[a + 1], a + 1)
+                rm_indx = index_to_remove_ends(xx[a], a, xx[a + 1], a + 1)
                 if rm_indx is not None:
                     to_rm.append(rm_indx)
     filtereddf = df.drop(to_rm)
@@ -139,9 +139,9 @@ def FindUniqueCoords(df):
         if x != firstindex:
             s = dd[x - 1].get("rightstart")
         else:
-            s = v.get("leftstop")
+            s = v.get("leftend")
         if x != lastindex:
-            end_override = dd[x + 1].get("leftstop")
+            end_override = dd[x + 1].get("leftend")
         else:
             end_override = None
         if end_override is not None:
@@ -195,8 +195,24 @@ def ReadIndex(f):
     return pd.read_csv(f, index_col=0, compression="gzip")
 
 
-def ReadPrimers(f):
-    return pd.read_csv(f)
+def ReadPrimers(filename):
+    primer_df = pd.read_csv(
+        filename,
+        sep="\t",
+        comment="#",
+        usecols=range(6),
+        header=None,
+        names=["ref", "start", "end", "name", "score", "strand"],
+        dtype=dict(
+            ref=str,
+            start="Int64",
+            end="Int64",
+            name=str,
+            score=str,
+            strand=str,
+        ),
+    )
+    return primer_df[["name", "start", "end"]]
 
 
 def primerframes(input):
@@ -232,9 +248,9 @@ if __name__ == "__main__":
                     .rename(
                         columns={
                             "start_x": "leftstart",
-                            "stop_x": "leftstop",
+                            "end_x": "leftend",
                             "start_y": "rightstart",
-                            "stop_y": "rightstop",
+                            "end_y": "rightend",
                         }
                     )
                     .drop_duplicates(subset="name")
