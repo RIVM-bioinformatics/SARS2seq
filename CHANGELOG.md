@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.4...v0.6.0) (2022-04-26)
+
+
+### Features
+
+* Update TrueConsense to 0.5.0 ([972c08a](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/972c08a3fd88e8ade9c6095ec84b3645306dcf05))
+
+
+### Bug Fixes
+
+* Update Ampligone to 1.0.1 ([cce0e31](https://www.github.com/RIVM-bioinformatics/SARS2seq/commit/cce0e31fa8b5a82a368936c526d2935d58620af6))
+
 ### [0.5.4](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.3...v0.5.4) (2022-04-08)
 
 
