@@ -963,8 +963,8 @@ rule Typing:
     shell:
         """
         nextclade run \
+            {input.fasta} \
             --input-dataset '{input.nc_dataset}' \
-            --input-fasta '{input.fasta}' \
             --output-csv '{output.nextc}' > {log} 2>&1
         pangolin \
             {input.fasta} \
