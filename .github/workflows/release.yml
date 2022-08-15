@@ -10,11 +10,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: GoogleCloudPlatform/release-please-action@v2
+      - uses: GoogleCloudPlatform/release-please-action@v3
         id: release
         with:
           release-type: python
           package-name: SARS2seq
+          token: ${{ secrets.RELEASE_TOKEN }}
 
   update-docs:
     needs: bump-and-release
