@@ -417,7 +417,7 @@ if config["primer_file"] != "NONE":
             -at {params.amplicontype} \
             --export-primers {output.ep} \
             -to \
-            -t {threads}
+            -t {threads} > {log} 2>&1
             """
 if config["primer_file"] == "NONE":
     rule RemovePrimers:
