@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.1](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.0...v0.6.1) (2022-08-15)
+
+
+### Bug Fixes
+
+* write AmpliGone output to logfile instead of stdout ([ff16fe4](https://github.com/RIVM-bioinformatics/SARS2seq/commit/ff16fe4f6436e56d31410bac45ad13b4d6fefef3))
+
+
+### Dependencies
+
+* simplify the `QC_and_cleanup` environment ([8a8059e](https://github.com/RIVM-bioinformatics/SARS2seq/commit/8a8059ee2131988bb6432bb5fa4dbe5d823d239e))
+* update Nextclade to newer (lenient) version 2.4.x ([d5b90e2](https://github.com/RIVM-bioinformatics/SARS2seq/commit/d5b90e2d452f3999417fb655746f6768326e432a))
+* Update required snakemake version to 7.x (pinned to 7.12.1) ([b171fc4](https://github.com/RIVM-bioinformatics/SARS2seq/commit/b171fc4c9dcc4882bb4e827ac73fd4b5c682389f))
+* upgrade AmpliGone to version 1.1.0 ([ec005aa](https://github.com/RIVM-bioinformatics/SARS2seq/commit/ec005aa58f3d1a98ec45ed7f4ab669f27ef1a055))
+* use the bioconda channel to install AmpliGone instead of pip ([8a8059e](https://github.com/RIVM-bioinformatics/SARS2seq/commit/8a8059ee2131988bb6432bb5fa4dbe5d823d239e))
+
 ## [0.6.0](https://www.github.com/RIVM-bioinformatics/SARS2seq/compare/v0.5.4...v0.6.0) (2022-04-26)
 
 
