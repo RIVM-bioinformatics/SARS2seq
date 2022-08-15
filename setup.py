@@ -29,13 +29,13 @@ Please make sure SnakeMake is installed properly before installing SARS2seq
 """
     )
 
-if vv.parse(snakemake.__version__) < vv.parse("6.0"):
+if vv.parse(snakemake.__version__) < vv.parse("7.0"):
     sys.exit(
         f"""
 The installed SnakeMake version is older than the minimally required version:
 
 Installed SnakeMake version: {snakemake.__version__}
-Required SnakeMake version: 6.0 or later
+Required SnakeMake version: 7.0 or later
 
 Please update SnakeMake to a supported version and try again
 """

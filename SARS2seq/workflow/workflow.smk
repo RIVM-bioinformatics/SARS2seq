@@ -6,7 +6,7 @@ import sys
 import json
 from directories import *
 import snakemake
-snakemake.utils.min_version("6.0")
+snakemake.utils.min_version("7.0")
 
 yaml.warnings({'YAMLLoadWarning': False})
 shell.executable("/bin/bash")
@@ -417,7 +417,7 @@ if config["primer_file"] != "NONE":
             -at {params.amplicontype} \
             --export-primers {output.ep} \
             -to \
-            -t {threads}
+            -t {threads} > {log} 2>&1
             """
 if config["primer_file"] == "NONE":
     rule RemovePrimers:
@@ -910,12 +910,16 @@ rule update_typingtools:
 
 def _get_tag(w):
     import json
-    if config['dryrun'] is True:
+    from collections import defaultdict
+    d = defaultdict(lambda: None, config)
+    if d['dryrun'] is True or d['dryrun'] is None:
         return None
     w = f'{rules.update_typingtools.output.nxc_dataset}/tag.json'
-    with open(w) as f:
-        a = json.load(f)
-    return a['tag']
+    if os.path.exists(w):
+        with open(w) as f:
+            return json.load(f)['tag']
+    else:
+        return None
 
 rule Catch_typing_versions:
     input: rules.update_typingtools.output.nxc_dataset
@@ -963,8 +967,8 @@ rule Typing:
     shell:
         """
         nextclade run \
+            {input.fasta} \
             --input-dataset '{input.nc_dataset}' \
-            --input-fasta '{input.fasta}' \
             --output-csv '{output.nextc}' > {log} 2>&1
         pangolin \
             {input.fasta} \
