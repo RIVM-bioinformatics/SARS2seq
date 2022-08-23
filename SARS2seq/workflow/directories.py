@@ -37,7 +37,7 @@ tbl = "tables/"
 hmap = "heatmaps/"
 cnt = "counts/"
 mqc_data = "multiqc_data/"
-fls = "files/"
+typingdata = "typing_data/"
 
 raw = "raw/"
 
