@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.1...v0.6.2) (2022-08-23)
+
+
+### Bug Fixes
+
+* change the directory with nextclade dataset from temp to non-temp in order to circumvent a WorkflowError ([ae3da11](https://github.com/RIVM-bioinformatics/SARS2seq/commit/ae3da1169da76358a156e7e9befa5790f2261d35))
+
 ## [0.6.1](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.0...v0.6.1) (2022-08-15)
 
 
