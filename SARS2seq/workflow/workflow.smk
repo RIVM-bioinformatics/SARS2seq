@@ -895,7 +895,7 @@ if config['platform'] == "nanopore" or config['platform'] == "iontorrent":
 
 rule update_typingtools:
     output:
-        nxc_dataset = temp(directory(f"{datadir + fls}"))
+        nxc_dataset = directory(f"{datadir + typingdata}")
     conda:
         f"{conda_envs}Typing.yaml"
     threads: 1
