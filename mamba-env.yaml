@@ -10,6 +10,7 @@ dependencies:
   - mamba
   - drmaa==0.7.9
   - snakemake==7.12.1
+  - tabulate==0.8.10
   - biopython==1.79
   - pyyaml==6.0
   - urllib3>=1.26
