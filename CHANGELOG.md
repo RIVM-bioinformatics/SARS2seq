@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.3...v0.6.4) (2022-10-10)
+
+
+### Dependencies
+
+* set tabulate version to 0.8.10 in Typing environment as workaround ([a391864](https://github.com/RIVM-bioinformatics/SARS2seq/commit/a3918648127d36ae89dfedf33f37a7ea89fa1829))
+
 ## [0.6.3](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.2...v0.6.3) (2022-10-10)
 
 

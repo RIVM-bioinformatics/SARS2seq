@@ -11,6 +11,7 @@ dependencies:
   - pangolin==4.0.2
   - nextclade=2.4
   - snakemake<=6.8.0
+  - tabulate==0.8.10
   - pandas==1.3.5
   - usher
   - pip
