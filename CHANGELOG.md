@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.2...v0.6.3) (2022-10-10)
+
+
+### Dependencies
+
+* pin python-tabulate to v0.8.10 as a workaround for snakemake ([3766878](https://github.com/RIVM-bioinformatics/SARS2seq/commit/3766878de489da3d78021392e5b61fd8879322d0))
+
 ## [0.6.2](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.1...v0.6.2) (2022-08-23)
 
 
