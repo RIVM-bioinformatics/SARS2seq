@@ -57,8 +57,8 @@ def SnakemakeConfig(conf, cpus, dryrun):
 
 def SnakemakeParams(conf, cores, prim, platform, samplesheet, amplicon):
     if conf["COMPUTING"]["compmode"] == "local":
-        threads_highcpu = int(set_cores(cores))
-        threads_midcpu = int(cores / 2)
+        threads_highcpu = min(int(set_cores(cores)), 12)
+        threads_midcpu = min(int(cores / 2), 6)
         threads_lowcpu = 1
     if conf["COMPUTING"]["compmode"] == "grid":
         threads_highcpu = 12
