@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.4...v0.6.5) (2023-01-17)
+
+
+### Code Refactoring
+
+* re-balance threads to improve parallelization in local execution mode (use at most n threads for certain steps) ([a8bccad](https://github.com/RIVM-bioinformatics/SARS2seq/commit/a8bccade7f96861e3563dd915d0217fe7d61bd2b))
+
 ## [0.6.4](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.3...v0.6.4) (2022-10-10)
 
 
