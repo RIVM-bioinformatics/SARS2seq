@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.6](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.5...v0.6.6) (2023-03-01)
+
+
+### Dependencies
+
+* Update AmpliGone to v1.2.1 ([67706ff](https://github.com/RIVM-bioinformatics/SARS2seq/commit/67706ffaca501c228a6a09e92753ffb8693df4dc))
+
 ## [0.6.5](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.4...v0.6.5) (2023-01-17)
 
 
