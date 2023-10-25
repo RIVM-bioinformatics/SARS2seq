@@ -2,8 +2,6 @@ channels:
   - bioconda
   - conda-forge
   - intel
-  - anaconda
-  - defaults
 dependencies:
   - python=3.7
   - conda=4.11
