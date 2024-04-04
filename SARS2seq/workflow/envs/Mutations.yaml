@@ -3,5 +3,6 @@ channels:
   - bioconda
   - conda-forge
   - intel
+  - nodefaults
 dependencies:
   - bcftools==1.14

@@ -3,6 +3,7 @@ channels:
   - bioconda
   - conda-forge
   - intel
+  - nodefaults
 dependencies:
   - python=3.8
   - ampligone==1.2.1
