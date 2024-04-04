@@ -10,10 +10,10 @@ pangolin = pd.read_csv(pn_typ, sep=",")
 
 if len(pangolin.index) < 1:
     pangolin = {
-        'version': [None],
-        'lineage': [None],
-        'scorpio_call': [None],
-        'qc_status': [None],
+        "version": [None],
+        "lineage": [None],
+        "scorpio_call": [None],
+        "qc_status": [None],
     }
 
 else:

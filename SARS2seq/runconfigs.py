@@ -22,7 +22,7 @@ def set_cores(cores):
 
 def get_max_local_mem():
     avl_mem_bytes = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
-    return int(round(avl_mem_bytes / (1024.0 ** 2) - 2000, -3))
+    return int(round(avl_mem_bytes / (1024.0**2) - 2000, -3))
 
 
 def SnakemakeConfig(conf, cpus, dryrun):

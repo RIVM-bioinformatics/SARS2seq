@@ -167,8 +167,9 @@ def FindUniqueCoords(df):
         .reset_index()
         .rename(columns={0: "name", "index": "unique_end"})
     )
-    df = pd.merge(df, startdf, on="name", how="inner")
-    df = pd.merge(df, enddf, on="name", how="inner")
+    if not startdf.empty and not enddf.empty:
+        df = pd.merge(df, startdf, on="name", how="inner")
+        df = pd.merge(df, enddf, on="name", how="inner")
 
     return df
 
