@@ -19,7 +19,10 @@ arg.add_argument(
 )
 
 arg.add_argument(
-    "--boc", type=str, metavar="File", required=False,
+    "--boc",
+    type=str,
+    metavar="File",
+    required=False,
 )
 
 arg.add_argument(

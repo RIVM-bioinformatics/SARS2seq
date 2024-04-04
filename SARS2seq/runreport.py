@@ -107,9 +107,9 @@ def WriteReport(workingdir, inpath, startpath, conf, sparams, sconfig, status, t
         pdf = analysis_details(
             pdf, "\t\t\t\tScorpio version:", pangolin_tags["scorpio"].lstrip("v")
         )
-        #pdf = analysis_details(
+        # pdf = analysis_details(
         #    pdf, "\t\t\t\tPangoLEARN version:", pangolin_tags["pangolearn"].lstrip("v")
-        #)
+        # )
         # pdf = analysis_details(
         #     pdf,
         #     "\t\t\t\tPango-designation:",

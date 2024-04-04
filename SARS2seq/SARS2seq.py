@@ -147,7 +147,9 @@ def get_args(givenargs):
     )
 
     optional_args.add_argument(
-        "--skip-updates", action="store_true", help="Skip the update check",
+        "--skip-updates",
+        action="store_true",
+        help="Skip the update check",
     )
 
     if len(givenargs) < 1:

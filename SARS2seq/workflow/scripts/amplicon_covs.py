@@ -9,7 +9,7 @@ args.add_argument(
     "--primers",
     metavar="File",
     type=str,
-    help="input file with primers as given by AmpliGone",
+    help="input BED file with primers as given by AmpliGone",
     required=True,
 )
 
@@ -35,24 +35,32 @@ flags = args.parse_args()
 
 
 def split_frames(df):
-    left = ["LEFT", "PLUS", "POSITIVE"]
-    right = ["RIGHT", "MINUS", "NEGATIVE"]
+    left = ["LEFT", "PLUS", "POSITIVE", "FORWARD"]
+    right = ["RIGHT", "MINUS", "NEGATIVE", "REVERSE"]
 
     leftdf = pd.DataFrame(columns=df.columns)
     rightdf = pd.DataFrame(columns=df.columns)
 
     for x in df.itertuples():
-        if any(l in x[1] for l in left) is True:
-            leftdf = leftdf.append(
-                pd.DataFrame(
-                    {"name": x.name, "start": x.start, "end": x.end}, index=[0]
-                )
+        if any(l in x[1] for l in left):
+            leftdf = pd.concat(
+                [
+                    leftdf,
+                    pd.DataFrame(
+                        {"name": x.name, "start": x.start, "end": x.end}, index=[0]
+                    ),
+                ],
+                ignore_index=True,
             )
-        if any(r in x[1] for r in right) is True:
-            rightdf = rightdf.append(
-                pd.DataFrame(
-                    {"name": x.name, "start": x.start, "end": x.end}, index=[0]
-                )
+        if any(r in x[1] for r in right):
+            rightdf = pd.concat(
+                [
+                    rightdf,
+                    pd.DataFrame(
+                        {"name": x.name, "start": x.start, "end": x.end}, index=[0]
+                    ),
+                ],
+                ignore_index=True,
             )
 
     leftdf.reset_index(inplace=True)
@@ -65,7 +73,16 @@ def split_frames(df):
 
 
 def remove_keyword(prname):
-    keywords = ["LEFT", "RIGHT", "PLUS", "MINUS", "POSITIVE", "NEGATIVE"]
+    keywords = [
+        "LEFT",
+        "RIGHT",
+        "PLUS",
+        "MINUS",
+        "POSITIVE",
+        "NEGATIVE",
+        "FORWARD",
+        "REVERSE",
+    ]
     sname = prname.split("_")
     for y, z in enumerate(sname):
         if z in keywords:
@@ -108,29 +125,25 @@ def index_to_remove_starts(one, indexone, two, indextwo):
 def remove_alt_primer_l(df):
     xx = df.to_dict(orient="records")
     to_rm = []
-    lastindex = list(enumerate(xx))[-1][0]
+    lastindex = list(enumerate(xx))[-1][0] if xx else -1
     for a, x in enumerate(xx):
-        if a != lastindex:
-            if xx[a].get("name") == xx[a + 1].get("name"):
-                rm_indx = index_to_remove_ends(xx[a], a, xx[a + 1], a + 1)
-                if rm_indx is not None:
-                    to_rm.append(rm_indx)
-    filtereddf = df.drop(to_rm)
-    return filtereddf
+        if a != lastindex and xx[a].get("name") == xx[a + 1].get("name"):
+            rm_indx = index_to_remove_ends(xx[a], a, xx[a + 1], a + 1)
+            if rm_indx is not None:
+                to_rm.append(rm_indx)
+    return df.drop(to_rm)
 
 
 def remove_alt_primer_r(df):
     xx = df.to_dict(orient="records")
     to_rm = []
-    lastindex = list(enumerate(xx))[-1][0]
+    lastindex = list(enumerate(xx))[-1][0] if xx else -1
     for a, x in enumerate(xx):
-        if a != lastindex:
-            if xx[a].get("name") == xx[a + 1].get("name"):
-                rm_indx = index_to_remove_starts(xx[a], a, xx[a + 1], a + 1)
-                if rm_indx is not None:
-                    to_rm.append(rm_indx)
-    filtereddf = df.drop(to_rm)
-    return filtereddf
+        if a != lastindex and xx[a].get("name") == xx[a + 1].get("name"):
+            rm_indx = index_to_remove_starts(xx[a], a, xx[a + 1], a + 1)
+            if rm_indx is not None:
+                to_rm.append(rm_indx)
+    return df.drop(to_rm)
 
 
 def Find_NonOverlap(df):
@@ -141,23 +154,12 @@ def Find_NonOverlap(df):
     firstindex = list(enumerate(dd))[0][0]
     for x, v in enumerate(dd):
         t_end = v.get("rightstart")
-        if x != firstindex:
-            s = dd[x - 1].get("rightstart")
+        s = dd[x - 1].get("rightstart") if x != firstindex else v.get("leftend")
+        end_override = dd[x + 1].get("leftend") if x != lastindex else None
+        primerstart = s
+        if end_override is not None and end_override in range(primerstart, t_end):
+            primerend = end_override
         else:
-            s = v.get("leftend")
-        if x != lastindex:
-            end_override = dd[x + 1].get("leftend")
-        else:
-            end_override = None
-        if end_override is not None:
-            if end_override in range(s, t_end):
-                primerstart = s
-                primerend = end_override
-            else:
-                primerstart = s
-                primerend = t_end
-        else:
-            primerstart = s
             primerend = t_end
         startingpoint[primerstart] = v.get("name")
         endingpoint[primerend] = v.get("name")
@@ -187,14 +189,11 @@ def Average_cov(primers, covs):
     primd = primers.to_dict(orient="records")
     averages = {}
 
-    for x, v in enumerate(primd):
-        localcov = []
-
+    for v in primd:
         prstart = v.get("unique_start")
         prend = v.get("unique_end")
         pr_range = list(range(prstart, prend))
-        for i in pr_range:
-            localcov.append(covd[i].get("cov"))
+        localcov = [covd[i].get("cov") for i in pr_range]
         averages[avg(localcov)] = v.get("name")
 
     avgdf = (
@@ -207,30 +206,23 @@ def Average_cov(primers, covs):
     return primers
 
 
+def pad_name(name):
+    name = name.split("_")
+    name[-1] = name[-1].zfill(3)
+    return "_".join(name)
+
+
 if __name__ == "__main__":
     covs = pd.read_csv(
         flags.coverages, sep="\t", names=["position", "cov"], index_col="position"
     )
 
     try:
-        primer_df = pd.read_csv(
-            flags.primers,
-            sep="\t",
-            comment="#",
-            usecols=range(6),
-            header=None,
-            names=["ref", "start", "end", "name", "score", "strand"],
-            dtype=dict(
-                ref=str,
-                start="Int64",
-                end="Int64",
-                name=str,
-                score=str,
-                strand=str,
-            ),
-        )
-        prims = primer_df[["name", "start", "end"]]
-        prims = prims.sort_values(by="start")
+        prims = pd.read_csv(
+            flags.primers, sep="\t", usecols=[1, 2, 3], names=["start", "end", "name"]
+        )[["name", "start", "end"]]
+        prims = prims.sort_values(by="start").reindex()
+
     except Exception:
         print("Error reading primers file")
         with open(flags.output, "w") as f:
@@ -241,7 +233,7 @@ if __name__ == "__main__":
             )
         sys.exit()
 
-    if len(prims) <= 0:
+    if len(prims) <= 1:
         print("Primers file is empty, writing output and exiting...")
         with open(flags.output, "w") as f:
             f.write(
@@ -284,6 +276,9 @@ if __name__ == "__main__":
             "unique_end",
         ]
     ).rename(columns={"avg_cov": flags.key})
+
+    # ensure the values like "MeV_1" or "MeV_19" in column "name" are padded like 001, 002, 003, etc.
+    with_average["name"] = with_average["name"].apply(pad_name)
 
     with_average = with_average.transpose()
 

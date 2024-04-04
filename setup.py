@@ -62,7 +62,7 @@ setup(
         "drmaa==0.7.9",
         "fpdf==1.7.2",
         "pyyaml==6.0",
-        "tabulate==0.8.10"
+        "tabulate==0.8.10",
     ],
     entry_points={
         "console_scripts": [
