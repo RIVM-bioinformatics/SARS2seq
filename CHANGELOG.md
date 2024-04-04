@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.7](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.6...v0.6.7) (2024-04-04)
+
+
+### Bug Fixes
+
+* properly handle empty index files ([0ee4d74](https://github.com/RIVM-bioinformatics/SARS2seq/commit/0ee4d74e3b2530aadcd83968384ed72b1fb00ada))
+
+
+### Dependencies
+
+* explicitly state the nodefaults channel in all environments ([749ad4a](https://github.com/RIVM-bioinformatics/SARS2seq/commit/749ad4a544ef8616e2a36688fecf138ff868aea9))
+* remove anaconda and defaults channels from conda recipes ([e201894](https://github.com/RIVM-bioinformatics/SARS2seq/commit/e201894d0ddb43e441a4eec93087541ce2b5e98a))
+* solve minor installation hassles for the main environment ([749ad4a](https://github.com/RIVM-bioinformatics/SARS2seq/commit/749ad4a544ef8616e2a36688fecf138ff868aea9))
+
 ## [0.6.6](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.5...v0.6.6) (2023-03-01)
 
 
