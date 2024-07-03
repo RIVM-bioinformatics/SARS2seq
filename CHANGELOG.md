@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.8](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.7...v0.6.8) (2024-07-03)
+
+
+### Dependencies
+
+* Update conda environment files to remove the 'intel' channel ([4572252](https://github.com/RIVM-bioinformatics/SARS2seq/commit/4572252e6114937ce05ffd2e8fae60602cc0582a))
+
+
+### Documentation
+
+* update documentation page accordingly ([4572252](https://github.com/RIVM-bioinformatics/SARS2seq/commit/4572252e6114937ce05ffd2e8fae60602cc0582a))
+
 ## [0.6.7](https://github.com/RIVM-bioinformatics/SARS2seq/compare/v0.6.6...v0.6.7) (2024-04-04)
 
 
