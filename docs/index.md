@@ -36,10 +36,7 @@ git clone https://github.com/RIVM-bioinformatics/SARS2seq.git; cd SARS2seq; git 
 1. Create the required conda-environment and install the necessary dependencies.  
     Copy and paste the code-snippet below in order to create the new conda-environment and directly activate it.  
     
-    `conda create --name SARS2seq -c conda-forge mamba python=3.7 -y; conda activate SARS2seq; mamba env update -f mamba-env.yaml`
-
-    You can also use the following snippet if the code-snippet above didn't work for you:  
-    `conda env create -f env.yml && conda activate SARS2seq`  
+    `mamba env create -f env.yml && conda activate SARS2seq`
     
     **The "SARS2seq" environment should now be active**  
 
